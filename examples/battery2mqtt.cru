@@ -76,7 +76,10 @@ function update_battery(&mut Battery bat, float delta_soc)
     for (int m = 0; m < n; m++)
     {
         bat.modules[m].soc -= delta_soc;
-        if (bat.modules[m].soc < 0.0) { bat.modules[m].soc = 0.0; }
+        if (bat.modules[m].soc < 0.0)
+        {
+            bat.modules[m].soc = 0.0;
+        }
         bat.modules[m].voltage = soc_to_voltage(bat.modules[m].soc);
         total_soc += bat.modules[m].soc;
         total_v   += bat.modules[m].voltage;
@@ -107,7 +110,10 @@ function load_config(string path): Config
             for (line : content.lines())
             {
                 auto trimmed = line.trim();
-                if (trimmed.starts_with("#") || trimmed.is_empty()) { continue; }
+                if (trimmed.starts_with("#") || trimmed.is_empty())
+                {
+                    continue;
+                }
 
                 if let Some(kv) = trimmed.split_once("=")
                 {

@@ -22,7 +22,10 @@ function lcg(int seed): int
 
 function abs_val(int x): int
 {
-    if (x < 0) { return 0 - x; }
+    if (x < 0)
+    {
+        return 0 - x;
+    }
     return x;
 }
 
@@ -66,19 +69,31 @@ function main()
         int ch = getchar();
         if (ch == 119 || ch == 87)          // w W  up
         {
-            if (dir != DOWN)  { dir = UP; }
+            if (dir != DOWN)
+            {
+                dir = UP;
+            }
         }
         else if (ch == 115 || ch == 83)     // s S  down
         {
-            if (dir != UP)    { dir = DOWN; }
+            if (dir != UP)
+            {
+                dir = DOWN;
+            }
         }
         else if (ch == 97 || ch == 65)      // a A  left
         {
-            if (dir != RIGHT) { dir = LEFT; }
+            if (dir != RIGHT)
+            {
+                dir = LEFT;
+            }
         }
         else if (ch == 100 || ch == 68)     // d D  right
         {
-            if (dir != LEFT)  { dir = RIGHT; }
+            if (dir != LEFT)
+            {
+                dir = RIGHT;
+            }
         }
         else if (ch == 81)                  // Q  quit
         {
@@ -92,10 +107,22 @@ function main()
             int hy = sy[snake_len - 1];
             int nx = hx;
             int ny = hy;
-            if (dir == UP)    { ny = hy - 1; }
-            if (dir == DOWN)  { ny = hy + 1; }
-            if (dir == LEFT)  { nx = hx - 1; }
-            if (dir == RIGHT) { nx = hx + 1; }
+            if (dir == UP)
+            {
+                ny = hy - 1;
+            }
+            if (dir == DOWN)
+            {
+                ny = hy + 1;
+            }
+            if (dir == LEFT)
+            {
+                nx = hx - 1;
+            }
+            if (dir == RIGHT)
+            {
+                nx = hx + 1;
+            }
 
             // wall collision
             if (nx < 0 || nx >= WIDTH || ny < 0 || ny >= HEIGHT)
@@ -108,7 +135,11 @@ function main()
             {
                 for (i : 0..snake_len)
                 {
-                    if (sx[i] == nx && sy[i] == ny) { running = false; break; }
+                    if (sx[i] == nx && sy[i] == ny)
+                    {
+                        running = false;
+                        break;
+                    }
                 }
             }
 
@@ -139,7 +170,10 @@ function main()
                 // top border
                 at(1, 1);
                 print("+");
-                for (i : 0..WIDTH) { print("-"); }
+                for (i : 0..WIDTH)
+                {
+                    print("-");
+                }
                 print("+");
 
                 // side borders
@@ -152,7 +186,10 @@ function main()
                 // bottom border
                 at(HEIGHT + 2, 1);
                 print("+");
-                for (i : 0..WIDTH) { print("-"); }
+                for (i : 0..WIDTH)
+                {
+                    print("-");
+                }
                 print("+");
 
                 // food
@@ -163,8 +200,14 @@ function main()
                 for (i : 0..snake_len)
                 {
                     at(sy[i] + 2, sx[i] + 2);
-                    if (i == snake_len - 1) { print("O"); }
-                    else                    { print("o"); }
+                    if (i == snake_len - 1)
+                    {
+                        print("O");
+                    }
+                    else
+                    {
+                        print("o");
+                    }
                 }
 
                 // score

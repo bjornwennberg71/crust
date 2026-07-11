@@ -156,13 +156,19 @@ Pass by reference with `&` (read-only) or `&mut` (mutable). Works for any type.
 function sum(&Vec<int> v): int   // read-only reference — v is not moved
 {
     int total = 0;
-    for (x : v) { total += x; }
+    for (x : v)
+    {
+        total += x;
+    }
     return total;
 }
 
 function fill(&mut Vec<int> v, int n)   // mutable reference — can modify v
 {
-    for (i : 0..n) { v.push(i); }
+    for (i : 0..n)
+    {
+        v.push(i);
+    }
 }
 
 Vec<int> nums = vec();
@@ -247,8 +253,14 @@ i++;    i--;    ++i;    --i;    // all desugar to i += 1 / i -= 1
 ```c
 while (running)
 {
-    if (done) { break; }
-    if (skip) { continue; }
+    if (done)
+    {
+        break;
+    }
+    if (skip)
+    {
+        continue;
+    }
 }
 ```
 
@@ -426,9 +438,18 @@ if let Some(val) = scores.get("Alice")
     println("score: {}", val);
 }
 
-for (key   : scores.keys()) { println("{}", key); }
-for (val   : scores.values()) { println("{}", val); }
-for (entry : scores.iter()) { println("{:?}", entry); }
+for (key   : scores.keys())
+{
+    println("{}", key);
+}
+for (val   : scores.values())
+{
+    println("{}", val);
+}
+for (entry : scores.iter())
+{
+    println("{:?}", entry);
+}
 ```
 
 ### Strings
@@ -818,8 +839,14 @@ int main(void)
 function main()
 {
     Vec<int> nums = vec();
-    for (int i = 0; i < 20; i++) { nums.push(i * i); }
-    for (n : nums) { print("{} ", n); }
+    for (int i = 0; i < 20; i++)
+    {
+        nums.push(i * i);
+    }
+    for (n : nums)
+    {
+        print("{} ", n);
+    }
     println("");
 }
 ```
@@ -904,8 +931,15 @@ int main(int argc, char *argv[])
     {
         bytes++;
         if (c == '\n') lines++;
-        if (isspace(c)) { in_word = 0; }
-        else if (!in_word) { in_word = 1; words++; }
+        if (isspace(c))
+        {
+            in_word = 0;
+        }
+        else if (!in_word)
+        {
+            in_word = 1;
+            words++;
+        }
     }
     fclose(f);
     printf("%ld %ld %ld %s\n", lines, words, bytes, argv[1]);

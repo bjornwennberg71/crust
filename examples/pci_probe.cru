@@ -48,14 +48,38 @@ function read_sysfs(string path): string
 
 function vendor_name(string v): string
 {
-    if (v == "0x8086") { return "Intel"; }
-    if (v == "0x8087") { return "Intel"; }
-    if (v == "0x10de") { return "NVIDIA"; }
-    if (v == "0x1022") { return "AMD"; }
-    if (v == "0x1002") { return "AMD/ATI"; }
-    if (v == "0x10ec") { return "Realtek"; }
-    if (v == "0x144d") { return "Samsung"; }
-    if (v == "0x17cb") { return "Qualcomm"; }
+    if (v == "0x8086")
+    {
+        return "Intel";
+    }
+    if (v == "0x8087")
+    {
+        return "Intel";
+    }
+    if (v == "0x10de")
+    {
+        return "NVIDIA";
+    }
+    if (v == "0x1022")
+    {
+        return "AMD";
+    }
+    if (v == "0x1002")
+    {
+        return "AMD/ATI";
+    }
+    if (v == "0x10ec")
+    {
+        return "Realtek";
+    }
+    if (v == "0x144d")
+    {
+        return "Samsung";
+    }
+    if (v == "0x17cb")
+    {
+        return "Qualcomm";
+    }
     return "";
 }
 
