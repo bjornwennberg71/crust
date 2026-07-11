@@ -444,9 +444,9 @@ impl Parser {
             // optional explicit `mutable` / `mut` before a type-first declaration
             TokenKind::KwMut if self.peek_is_type2() || self.peek_is_tuple_type_decl2() => {
                 self.advance();
-                Stmt::Let(self.parse_decl())
+                Stmt::Let(self.parse_decl(true))
             }
-            _ if self.peek_is_type() || self.peek_is_tuple_type_decl() => Stmt::Let(self.parse_decl()),
+            _ if self.peek_is_type() || self.peek_is_tuple_type_decl() => Stmt::Let(self.parse_decl(false)),
             _ => {
                 let expr = self.parse_expr();
                 self.eat(&TokenKind::Semicolon);
@@ -458,14 +458,14 @@ impl Parser {
     fn parse_let(&mut self) -> LetStmt {
         let span = self.span();
         self.expect(&TokenKind::KwLet);
-        self.eat(&TokenKind::KwMut);   // optional — everything is emitted `let mut`
+        let mutable = self.eat(&TokenKind::KwMut);   // const by default
         let name = self.parse_ident();
         let init = if self.eat(&TokenKind::Eq) { Some(self.parse_expr()) } else { None };
         self.expect(&TokenKind::Semicolon);
-        LetStmt { span, name, ty: None, init }
+        LetStmt { span, name, ty: None, init, mutable }
     }
 
-    fn parse_decl(&mut self) -> LetStmt {
+    fn parse_decl(&mut self, mutable: bool) -> LetStmt {
         let span = self.span();
         let mut ty = self.parse_type();
         let name = self.parse_ident();
@@ -479,7 +479,7 @@ impl Parser {
         }
         let init = if self.eat(&TokenKind::Eq) { Some(self.parse_expr()) } else { None };
         self.expect(&TokenKind::Semicolon);
-        LetStmt { span, name, ty: Some(ty), init }
+        LetStmt { span, name, ty: Some(ty), init, mutable }
     }
 
     fn parse_return(&mut self) -> ReturnStmt {
@@ -1166,7 +1166,11 @@ impl Parser {
 
     // Scan past balanced <...> starting at pos+1 and check if an Ident follows.
     fn peek_past_generic(&self) -> bool {
-        let mut i = self.pos + 1;
+        self.peek_past_generic_from(self.pos + 1)
+    }
+
+    fn peek_past_generic_from(&self, start: usize) -> bool {
+        let mut i = start;
         let mut depth = 0usize;
         loop {
             if i >= self.tokens.len() { return false; }
@@ -1194,8 +1198,13 @@ impl Parser {
             TokenKind::KwInt | TokenKind::KwFloat | TokenKind::KwBool | TokenKind::KwVoid |
             TokenKind::KwChar | TokenKind::KwString | TokenKind::Star | TokenKind::Ampersand | TokenKind::LBracket => true,
             TokenKind::Ident(name) => {
+                if !self.known_types.contains(name) { return false; }
                 let j = (self.pos + 2).min(self.tokens.len() - 1);
-                self.known_types.contains(name) && matches!(&self.tokens[j].kind, TokenKind::Ident(_))
+                match &self.tokens[j].kind {
+                    TokenKind::Ident(_) => true,
+                    TokenKind::Lt       => self.peek_past_generic_from(j),
+                    _ => false,
+                }
             }
             _ => false,
         }

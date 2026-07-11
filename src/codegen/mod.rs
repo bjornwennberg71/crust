@@ -209,7 +209,8 @@ fn emit_stmt(stmt: &Stmt, out: &mut String, indent: usize, ctx: &Ctx) {
                 (None, _)    => String::new(),
             };
             let ty = l.ty.as_ref().map(|t| format!(": {}", emit_type(t))).unwrap_or_default();
-            out.push_str(&format!("{}let mut {}{}{};\n", pad, l.name, ty, init));
+            let mut_ = if l.mutable { "mut " } else { "" };
+            out.push_str(&format!("{}let {}{}{}{};\n", pad, mut_, l.name, ty, init));
         }
         Stmt::Return(r) => {
             match &r.value {
@@ -235,6 +236,8 @@ fn emit_stmt(stmt: &Stmt, out: &mut String, indent: usize, ctx: &Ctx) {
             out.push_str(&format!("{}{{\n", pad));
             if let Some(init) = &s.init {
                 match init {
+                    // C-style for counters are implicitly mutable — the
+                    // update clause exists to mutate them
                     ForInit::Decl { name, ty, init } =>
                         out.push_str(&format!("{}    let mut {}: {} = {};\n",
                             pad, name, emit_type(ty), emit_expr(init, ctx))),

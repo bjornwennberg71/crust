@@ -46,22 +46,22 @@ function main()
     print("\x1b[?25l");   // hide cursor
     flush();
 
-    Vec<int> sx = vec();
-    Vec<int> sy = vec();
+    mutable Vec<int> sx = vec();
+    mutable Vec<int> sy = vec();
     sx.push(WIDTH / 2);
     sy.push(HEIGHT / 2);
-    int snake_len = 1;
+    mutable int snake_len = 1;
 
-    int dir  = RIGHT;
-    int score = 0;
-    int seed  = 9871234;
+    mutable int dir  = RIGHT;
+    mutable int score = 0;
+    mutable int seed  = 9871234;
 
     seed = lcg(seed);
-    int fx = abs_val(seed % WIDTH);
+    mutable int fx = abs_val(seed % WIDTH);
     seed = lcg(seed);
-    int fy = abs_val(seed % HEIGHT);
+    mutable int fy = abs_val(seed % HEIGHT);
 
-    bool running = true;
+    mutable bool running = true;
 
     while (running)
     {
@@ -105,8 +105,8 @@ function main()
             // --- move ---
             int hx = sx[snake_len - 1];
             int hy = sy[snake_len - 1];
-            int nx = hx;
-            int ny = hy;
+            mutable int nx = hx;
+            mutable int ny = hy;
             if (dir == UP)
             {
                 ny = hy - 1;

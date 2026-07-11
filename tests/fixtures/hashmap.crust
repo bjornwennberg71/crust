@@ -1,7 +1,7 @@
 
 function main()
 {
-    HashMap<string, int> scores = HashMap::new();
+    mutable HashMap<string, int> scores = HashMap::new();
 
     // insert
     scores.insert("Alice", 100);

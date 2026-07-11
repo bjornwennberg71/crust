@@ -73,7 +73,7 @@ function demo_closures()
     int val  = double(5);
     bool even = is_even(4);
 
-    int counter = 0;
+    mutable int counter = 0;
     counter += 1;
     counter -= 1;
     counter *= 3;
@@ -164,7 +164,7 @@ function parse_and_double(int n): Result<int, bool>
 // pub function
 public function main()
 {
-    Vehicle v = Vehicle::new(50.0, 1);
+    mutable Vehicle v = Vehicle::new(50.0, 1);
     v.accelerate(60.0);
 
     bool fast = v.is_fast();

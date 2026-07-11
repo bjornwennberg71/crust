@@ -115,7 +115,25 @@ fn auto_and_let_equivalent() {
     let with_let  = crust::transpile("function main()\n{\n    let x = 42;\n    let mut y = x + 1;\n}\n");
     let with_auto = crust::transpile("function main()\n{\n    auto x = 42;\n    auto mut y = x + 1;\n}\n");
     assert_eq!(with_let, with_auto);
-    assert!(with_let.contains("let mut x = 42;"));
+    // const by default; mut only when declared
+    assert!(with_let.contains("let x = 42;"));
+    assert!(with_let.contains("let mut y"));
+}
+
+#[test]
+fn const_by_default() {
+    let rust = crust::transpile(concat!(
+        "function main()\n{\n",
+        "    int x = 1;\n",
+        "    mutable int y = 2;\n",
+        "    mutable Vec<int> v = vec();\n",
+        "    auto mutable z = 3;\n",
+        "}\n",
+    ));
+    assert!(rust.contains("let x: i64 = 1;"), "x must be immutable:\n{rust}");
+    assert!(rust.contains("let mut y: i64 = 2;"), "y must be mutable:\n{rust}");
+    assert!(rust.contains("let mut v: Vec<i64>"), "v must be mutable:\n{rust}");
+    assert!(rust.contains("let mut z = 3;"), "z must be mutable:\n{rust}");
 }
 
 #[test]

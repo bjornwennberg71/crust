@@ -118,7 +118,7 @@ function read_soc_version(string bdf): int
         return 0 - 1;
     }
 
-    int result = 0;
+    mutable int result = 0;
     unsafe
     {
         auto reg = base.add(9);   // byte offset 0x24 = u32 index 9
@@ -137,8 +137,8 @@ function main()
     println("");
     println("--- PCI bus (/sys/bus/pci/devices) ---");
 
-    string wifi = "";
-    Vec<string> rows = vec();
+    mutable string wifi = "";
+    mutable Vec<string> rows = vec();
 
     for (entry : fs::read_dir("/sys/bus/pci/devices").unwrap())
     {

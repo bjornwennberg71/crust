@@ -168,7 +168,7 @@ function ath11k_pci_warm_reset(u64 bar): int
     ath11k_pci_write32(bar, ATH11K_PCI_SOC_GLOBAL_RESET_ADDRESS, ATH11K_PCI_RESET_ASSERT);
     ath11k_pci_write32(bar, ATH11K_PCI_SOC_GLOBAL_RESET_ADDRESS, ATH11K_PCI_RESET_DEASSERT);
 
-    int poll = 0;
+    mutable int poll = 0;
     while (poll < ATH11K_PCI_FW_POLL_RETRIES)
     {
         u32 fw_ind = ath11k_pci_read32(bar, ATH11K_PCI_FW_INDICATOR_ADDR);
@@ -189,7 +189,7 @@ function ath11k_pci_warm_reset(u64 bar): int
 
 function ath11k_pci_host_ready(u64 bar)
 {
-    u32 val = ath11k_pci_read32(bar, ATH11K_PCI_FW_INDICATOR_ADDR);
+    mutable u32 val = ath11k_pci_read32(bar, ATH11K_PCI_FW_INDICATOR_ADDR);
     val |= ATH11K_PCI_FW_INDICATOR_HOST_READY;
     ath11k_pci_write32(bar, ATH11K_PCI_FW_INDICATOR_ADDR, val);
 }
@@ -276,7 +276,7 @@ function ath11k_pci_probe(u32 dev_id, u64 bar): int
 {
     println("ath11k: probe  device_id={:#06x}", dev_id);
 
-    u32 chip_id = 0;
+    mutable u32 chip_id = 0;
     if (dev_id == QCA6390_DEVICE_ID)
     {
         println("ath11k: QCA6390  (WiFi 6)");
@@ -363,7 +363,7 @@ function ath11k_pci_bitops_demo()
     println("  nibble={}  rebuilt={:#010x}", nibble, rebuilt);
 
     // Compound assignments on a status register
-    u32 status = 0x00000000;
+    mutable u32 status = 0x00000000;
     status |= 0x00000001;   // set bit 0 — CE0 IRQ pending
     status |= 0x00000004;   // set bit 2 — CE2 IRQ pending
     status &= ~lo_mask;     // clear low byte (ack all CE IRQs below bit 8)

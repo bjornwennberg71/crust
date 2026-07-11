@@ -62,7 +62,7 @@ fn greet(name: String) -> String
 fn main()
 {
     let args: Vec<String> = std::env::args().collect();
-    let mut msg: String = greet(String::from("world"));
+    let msg: String = greet(String::from("world"));
     println!("{}", msg);
 }
 ```
@@ -171,21 +171,31 @@ function fill(&mut Vec<int> v, int n)   // mutable reference — can modify v
     }
 }
 
-Vec<int> nums = vec();
+mutable Vec<int> nums = vec();
 fill(&mut nums, 5);
 int s = sum(&nums);
 ```
 
 ### Variables
+Const by default, like Rust: assigning to a plain variable is a compile
+error. Declare it `mutable` to opt in (`mut` is the accepted short form).
+
 ```c
-int x      = 42;        // explicit type
-float y    = 3.14;
-bool flag  = true;
-string s   = "hello";   // owned String
-let z      = x + 1;     // inferred type
-auto v     = x * 2;     // `auto` is the same as `let` — C++ spelling
-let mut w  = x + 2;     // `mut` is accepted but optional — everything is mutable
+int x          = 42;       // explicit type — read-only
+float y        = 3.14;
+bool flag      = true;
+string s       = "hello";  // owned String
+let z          = x + 1;    // inferred type — read-only
+auto v         = x * 2;    // `auto` is the same as `let` — C++ spelling
+mutable int m  = 0;        // opt in to mutation
+auto mutable w = x + 2;    // inferred + mutable
+m = m + 1;                 // ok
+x = 0;                     // ERROR: x is not mutable
 ```
+
+Function parameters, range-for loop variables, and `switch` pattern bindings
+are always read-only. The counter of a C-style `for (int i = 0; ...)` is
+implicitly mutable — the update clause exists to mutate it.
 
 ### if / else if / else
 ```c
@@ -331,8 +341,8 @@ impl Point
     }
 }
 
-Point p   = Point::new(3.0, 4.0);
-float len = p.length();
+mutable Point p = Point::new(3.0, 4.0);
+float len       = p.length();
 p.scale(2.0);
 ```
 
@@ -411,7 +421,7 @@ int first  = arr[0];
 
 ### Vec methods
 ```c
-Vec<int> v = vec();          // empty; vec(1, 2, 3) creates with elements
+mutable Vec<int> v = vec();  // empty; vec(1, 2, 3) creates with elements
 v.push(42);
 v.pop();
 v.remove(i);            // remove element at index i
@@ -442,7 +452,7 @@ int count        = nums.iter().count();
 No import needed — `HashMap` is built in, like `Vec`.
 
 ```c
-HashMap<string, int> scores = HashMap::new();
+mutable HashMap<string, int> scores = HashMap::new();
 scores.insert("Alice", 100);
 scores.remove("Alice");
 
@@ -854,7 +864,7 @@ int main(void)
 ```c
 function main()
 {
-    Vec<int> nums = vec();
+    mutable Vec<int> nums = vec();
     for (int i = 0; i < 20; i++)
     {
         nums.push(i * i);
@@ -1197,8 +1207,8 @@ function main()
 fn main()
 {
     let args: Vec<String> = std::env::args().collect();
-    let mut msg: String = String::from("captured");
-    let mut t: std::thread::JoinHandle<()> = std::thread::spawn(move || { println!("{}", msg); });
+    let msg: String = String::from("captured");
+    let t: std::thread::JoinHandle<()> = std::thread::spawn(move || { println!("{}", msg); });
     t.join().unwrap();
 }
 ```
@@ -1221,10 +1231,10 @@ function main()
 fn main()
 {
     let args: Vec<String> = std::env::args().collect();
-    let mut b: Box<i64> = Box::new(5);
-    let mut r: std::rc::Rc<i64> = std::rc::Rc::new(42);
-    let mut s: std::sync::Arc<String> = std::sync::Arc::new(String::from("shared"));
-    let mut s2: std::sync::Arc<String> = s.clone();
+    let b: Box<i64> = Box::new(5);
+    let r: std::rc::Rc<i64> = std::rc::Rc::new(42);
+    let s: std::sync::Arc<String> = std::sync::Arc::new(String::from("shared"));
+    let s2: std::sync::Arc<String> = s.clone();
 }
 ```
 
@@ -1242,9 +1252,9 @@ function main()
 fn main()
 {
     let args: Vec<String> = std::env::args().collect();
-    let mut nums: Vec<i64> = vec!(1, 2, 3, 4, 5);
-    let mut doubled: Vec<i64> = nums.clone().into_iter().map(|x| { return (x * 2); }).collect();
-    let mut sum: i64 = nums.clone().into_iter().sum();
+    let nums: Vec<i64> = vec!(1, 2, 3, 4, 5);
+    let doubled: Vec<i64> = nums.clone().into_iter().map(|x| { return (x * 2); }).collect();
+    let sum: i64 = nums.clone().into_iter().sum();
 }
 ```
 
@@ -1276,7 +1286,7 @@ async fn fetch() -> String
 async fn main()
 {
     let args: Vec<String> = std::env::args().collect();
-    let mut data: String = (fetch()).await;
+    let data: String = (fetch()).await;
     println!("{}", data);
 }
 ```

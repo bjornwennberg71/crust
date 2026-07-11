@@ -58,7 +58,7 @@ function soc_to_voltage(float soc): float
 
 function new_battery(int id, int num_modules): Battery
 {
-    Vec<BatteryModule> modules = vec();
+    mutable Vec<BatteryModule> modules = vec();
     for (int m = 0; m < num_modules; m++)
     {
         float soc = 100.0 - (id as float) * 5.0 - (m as float) * 0.5;
@@ -69,8 +69,8 @@ function new_battery(int id, int num_modules): Battery
 
 function update_battery(&mut Battery bat, float delta_soc)
 {
-    float total_soc = 0.0;
-    float total_v   = 0.0;
+    mutable float total_soc = 0.0;
+    mutable float total_v   = 0.0;
     int   n         = bat.modules.len();
 
     for (int m = 0; m < n; m++)
@@ -93,7 +93,7 @@ function update_battery(&mut Battery bat, float delta_soc)
 
 function load_config(string path): Config
 {
-    Config cfg = Config {
+    mutable Config cfg = Config {
         mqtt_host:           "localhost",
         mqtt_port:           1883,
         topic_prefix:        "battery",
@@ -168,9 +168,9 @@ function publish_all(&mut Client client, &Vec<Battery> bats, string prefix)
 
 function main()
 {
-    string config_path = "battery2mqtt.conf";
+    mutable string config_path = "battery2mqtt.conf";
 
-    int i = 1;                       // args[0] is the program name, like C
+    mutable int i = 1;                       // args[0] is the program name, like C
     while (i < args.len())
     {
         if (args[i] == "-c" && i + 1 < args.len())
@@ -186,9 +186,9 @@ function main()
         i++;
     }
 
-    Config cfg = load_config(config_path.clone());
+    mutable Config cfg = load_config(config_path.clone());
 
-    Vec<Battery> batteries = vec();
+    mutable Vec<Battery> batteries = vec();
     for (int b = 0; b < cfg.num_batteries; b++)
     {
         batteries.push(new_battery(b, cfg.modules_per_battery));
@@ -199,7 +199,7 @@ function main()
 
     auto pair = Client::new(opts, 10);
     auto mut client  = pair.0;
-    auto connection  = pair.1;
+    auto mutable connection  = pair.1;
 
     // drain the rumqttc eventloop in a background thread — the connection is
     // moved into the thread automatically

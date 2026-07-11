@@ -201,6 +201,7 @@ pub struct LetStmt {
     pub name: String,
     pub ty: Option<Type>,
     pub init: Option<Expr>,
+    pub mutable: bool,   // locals are const by default; `mutable`/`mut` opts in
 }
 
 #[derive(Debug)]
