@@ -624,13 +624,15 @@ typedef struct {
     float y;
 } Point;
 
-float point_distance(const Point *a, const Point *b) {
+float point_distance(const Point *a, const Point *b)
+{
     float dx = a->x - b->x;
     float dy = a->y - b->y;
     return sqrtf(dx*dx + dy*dy);
 }
 
-int main(void) {
+int main(void)
+{
     Point a = { 1.0f, 2.0f };
     Point b = { 4.0f, 6.0f };
     printf("distance: %f\n", point_distance(&a, &b));
@@ -680,7 +682,8 @@ C returns `NULL` or an error code and hopes the caller checks. Crust uses
 #include <stdio.h>
 #include <stdlib.h>
 
-char *read_file(const char *path) {
+char *read_file(const char *path)
+{
     FILE *f = fopen(path, "r");
     if (!f) return NULL;   // caller must check — nothing enforces this
 
@@ -695,9 +698,14 @@ char *read_file(const char *path) {
     return buf;            // caller must free — nothing enforces this
 }
 
-int main(void) {
+int main(void)
+{
     char *content = read_file("notes.txt");
-    if (!content) { fprintf(stderr, "failed\n"); return 1; }
+    if (!content)
+    {
+        fprintf(stderr, "failed\n");
+        return 1;
+    }
     printf("%s", content);
     free(content);
     return 0;
@@ -735,12 +743,14 @@ goes out of scope.
 #include <stdio.h>
 #include <string.h>
 
-int main(void) {
+int main(void)
+{
     char line[] = "alice:30:engineer";
     char *parts[3];
     int   n   = 0;
     char *tok = strtok(line, ":");     // mutates the original string
-    while (tok && n < 3) {
+    while (tok && n < 3)
+    {
         parts[n++] = tok;
         tok = strtok(NULL, ":");
     }
@@ -774,13 +784,16 @@ and frees itself.
 #include <stdio.h>
 #include <stdlib.h>
 
-int main(void) {
+int main(void)
+{
     int  cap  = 8;
     int  len  = 0;
     int *nums = malloc(cap * sizeof(int));
 
-    for (int i = 0; i < 20; i++) {
-        if (len == cap) {
+    for (int i = 0; i < 20; i++)
+    {
+        if (len == cap)
+        {
             cap *= 2;
             nums = realloc(nums, cap * sizeof(int));
         }
@@ -819,8 +832,10 @@ on any type, extracts enum payloads, and never falls through.
 typedef enum { CMD_QUIT, CMD_MOVE, CMD_FIRE } CmdKind;
 typedef struct { CmdKind kind; int x, y; } Command;
 
-void handle(Command cmd) {
-    switch (cmd.kind) {
+void handle(Command cmd)
+{
+    switch (cmd.kind)
+    {
         case CMD_QUIT: printf("quitting\n");                      break;
         case CMD_MOVE: printf("move to %d,%d\n", cmd.x, cmd.y);  break;
         case CMD_FIRE: printf("fire!\n");                         break;
@@ -862,15 +877,25 @@ A `wc`-style utility that counts lines, words, and bytes in a file.
 #include <stdio.h>
 #include <ctype.h>
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) { fprintf(stderr, "usage: wc <file>\n"); return 1; }
+int main(int argc, char *argv[])
+{
+    if (argc < 2)
+    {
+        fprintf(stderr, "usage: wc <file>\n");
+        return 1;
+    }
 
     FILE *f = fopen(argv[1], "r");
-    if (!f) { fprintf(stderr, "cannot open %s\n", argv[1]); return 1; }
+    if (!f)
+    {
+        fprintf(stderr, "cannot open %s\n", argv[1]);
+        return 1;
+    }
 
     long lines = 0, words = 0, bytes = 0;
     int  c, in_word = 0;
-    while ((c = fgetc(f)) != EOF) {
+    while ((c = fgetc(f)) != EOF)
+    {
         bytes++;
         if (c == '\n') lines++;
         if (isspace(c)) { in_word = 0; }

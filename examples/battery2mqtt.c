@@ -25,12 +25,14 @@
 
 /* ------------------------------------------------------------------ types */
 
-typedef struct {
+typedef struct
+{
     double voltage;
     double soc;
 } Module;
 
-typedef struct {
+typedef struct
+{
     int    id;
     int    num_modules;
     Module modules[MAX_MODULES];
@@ -38,7 +40,8 @@ typedef struct {
     double soc;        /* aggregate */
 } Battery;
 
-typedef struct {
+typedef struct
+{
     char   mqtt_host[MAX_STR];
     int    mqtt_port;
     char   topic_prefix[MAX_STR];
@@ -74,7 +77,8 @@ static int load_config(Config *c, const char *path)
     if (!f) return -1;
 
     char line[512];
-    while (fgets(line, sizeof(line), f)) {
+    while (fgets(line, sizeof(line), f))
+    {
         line[strcspn(line, "\n")] = 0;
         if (line[0] == '#' || line[0] == '\0') continue;
 
@@ -103,11 +107,13 @@ static double soc_to_voltage(double soc)
 
 static void init_batteries(Battery *bats, int num, int modules_per)
 {
-    for (int b = 0; b < num; b++) {
+    for (int b = 0; b < num; b++)
+    {
         bats[b].id          = b;
         bats[b].num_modules = modules_per;
         double total_soc = 0.0, total_v = 0.0;
-        for (int m = 0; m < modules_per; m++) {
+        for (int m = 0; m < modules_per; m++)
+        {
             /* stagger each battery and module slightly so they are not identical */
             double soc = 100.0 - b * 5.0 - m * 0.5;
             bats[b].modules[m].soc     = soc;
@@ -122,9 +128,11 @@ static void init_batteries(Battery *bats, int num, int modules_per)
 
 static void update_batteries(Battery *bats, int num, double delta_soc)
 {
-    for (int b = 0; b < num; b++) {
+    for (int b = 0; b < num; b++)
+    {
         double total_soc = 0.0, total_v = 0.0;
-        for (int m = 0; m < bats[b].num_modules; m++) {
+        for (int m = 0; m < bats[b].num_modules; m++)
+        {
             bats[b].modules[m].soc -= delta_soc;
             if (bats[b].modules[m].soc < 0.0) bats[b].modules[m].soc = 0.0;
             bats[b].modules[m].voltage = soc_to_voltage(bats[b].modules[m].soc);
@@ -149,14 +157,16 @@ static void publish_all(struct mosquitto *mosq, Battery *bats, int num,
                          const char *prefix)
 {
     char topic[512];
-    for (int b = 0; b < num; b++) {
+    for (int b = 0; b < num; b++)
+    {
         snprintf(topic, sizeof(topic), "%s/%d/voltage", prefix, b);
         pub(mosq, topic, bats[b].voltage);
 
         snprintf(topic, sizeof(topic), "%s/%d/soc", prefix, b);
         pub(mosq, topic, bats[b].soc);
 
-        for (int m = 0; m < bats[b].num_modules; m++) {
+        for (int m = 0; m < bats[b].num_modules; m++)
+        {
             snprintf(topic, sizeof(topic), "%s/%d/module/%d/voltage", prefix, b, m);
             pub(mosq, topic, bats[b].modules[m].voltage);
 
@@ -182,10 +192,14 @@ int main(int argc, char *argv[])
     default_config(&cfg);
 
     const char *config_path = "battery2mqtt.conf";
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "-c") && i + 1 < argc) {
+    for (int i = 1; i < argc; i++)
+    {
+        if (!strcmp(argv[i], "-c") && i + 1 < argc)
+        {
             config_path = argv[++i];
-        } else if (!strcmp(argv[i], "-h")) {
+        }
+        else if (!strcmp(argv[i], "-h"))
+        {
             usage();
             return 0;
         }
@@ -201,7 +215,8 @@ int main(int argc, char *argv[])
     struct mosquitto *mosq = mosquitto_new("battery2mqtt", true, NULL);
     if (!mosq) { fprintf(stderr, "error: mosquitto_new failed\n"); return 1; }
 
-    if (mosquitto_connect(mosq, cfg.mqtt_host, cfg.mqtt_port, 60) != MOSQ_ERR_SUCCESS) {
+    if (mosquitto_connect(mosq, cfg.mqtt_host, cfg.mqtt_port, 60) != MOSQ_ERR_SUCCESS)
+    {
         fprintf(stderr, "error: cannot connect to %s:%d\n", cfg.mqtt_host, cfg.mqtt_port);
         return 1;
     }
@@ -212,7 +227,8 @@ int main(int argc, char *argv[])
 
     const double discharge_per_tick = 0.05;   /* % SoC per tick */
 
-    while (1) {
+    while (1)
+    {
         publish_all(mosq, bats, cfg.num_batteries, cfg.topic_prefix);
         update_batteries(bats, cfg.num_batteries, discharge_per_tick);
         usleep(cfg.interval_ms * 1000);
