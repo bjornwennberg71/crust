@@ -1,0 +1,27 @@
+function abs(int x): int
+{
+    if (x < 0)
+    {
+        return 0 - x;
+    }
+    else
+    {
+        return x;
+    }
+}
+
+function count_down(int n): int
+{
+    int i = n;
+    while (i > 0)
+    {
+        i = i - 1;
+    }
+    return i;
+}
+
+function main()
+{
+    int a = abs(0 - 5);
+    int b = count_down(3);
+}

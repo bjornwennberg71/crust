@@ -1,0 +1,16 @@
+function square(int x): int
+{
+    return x * x;
+}
+
+function sum_of_squares(int a, int b): int
+{
+    int p = square(a);
+    int q = square(b);
+    return p + q;
+}
+
+function main()
+{
+    int result = sum_of_squares(3, 4);
+}

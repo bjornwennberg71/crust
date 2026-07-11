@@ -1,0 +1,188 @@
+extern "C"
+{
+    int system(*char cmd);
+    int usleep(int usec);
+    int fcntl(int fd, int cmd, int arg);
+    int getchar();
+}
+
+const int WIDTH      = 38;
+const int HEIGHT     = 18;
+const int F_SETFL    = 4;
+const int O_NONBLOCK = 2048;
+const int UP         = 0;
+const int RIGHT      = 1;
+const int DOWN       = 2;
+const int LEFT       = 3;
+
+function lcg(int seed): int
+{
+    return (seed * 48271) % 2147483647;
+}
+
+function abs_val(int x): int
+{
+    if (x < 0) { return 0 - x; }
+    return x;
+}
+
+function cls()
+{
+    print("\x1b[2J\x1b[H");
+}
+
+function at(int row, int col)
+{
+    print("\x1b[{};{}H", row, col);
+}
+
+function main()
+{
+    system("stty raw -echo");
+    fcntl(0, F_SETFL, O_NONBLOCK);
+    print("\x1b[?25l");   // hide cursor
+    flush();
+
+    Vec<int> sx = vec();
+    Vec<int> sy = vec();
+    sx.push(WIDTH / 2);
+    sy.push(HEIGHT / 2);
+    int snake_len = 1;
+
+    int dir  = RIGHT;
+    int score = 0;
+    int seed  = 9871234;
+
+    seed = lcg(seed);
+    int fx = abs_val(seed % WIDTH);
+    seed = lcg(seed);
+    int fy = abs_val(seed % HEIGHT);
+
+    bool running = true;
+
+    while (running)
+    {
+        // --- input ---
+        int ch = getchar();
+        if (ch == 119 || ch == 87)          // w W  up
+        {
+            if (dir != DOWN)  { dir = UP; }
+        }
+        else if (ch == 115 || ch == 83)     // s S  down
+        {
+            if (dir != UP)    { dir = DOWN; }
+        }
+        else if (ch == 97 || ch == 65)      // a A  left
+        {
+            if (dir != RIGHT) { dir = LEFT; }
+        }
+        else if (ch == 100 || ch == 68)     // d D  right
+        {
+            if (dir != LEFT)  { dir = RIGHT; }
+        }
+        else if (ch == 81)                  // Q  quit
+        {
+            running = false;
+        }
+
+        if (running)
+        {
+            // --- move ---
+            int hx = sx[snake_len - 1];
+            int hy = sy[snake_len - 1];
+            int nx = hx;
+            int ny = hy;
+            if (dir == UP)    { ny = hy - 1; }
+            if (dir == DOWN)  { ny = hy + 1; }
+            if (dir == LEFT)  { nx = hx - 1; }
+            if (dir == RIGHT) { nx = hx + 1; }
+
+            // wall collision
+            if (nx < 0 || nx >= WIDTH || ny < 0 || ny >= HEIGHT)
+            {
+                running = false;
+            }
+
+            // self collision
+            if (running)
+            {
+                for i in 0..snake_len
+                {
+                    if (sx[i] == nx && sy[i] == ny) { running = false; break; }
+                }
+            }
+
+            if (running)
+            {
+                sx.push(nx);
+                sy.push(ny);
+                snake_len++;
+
+                if (nx == fx && ny == fy)
+                {
+                    score++;
+                    seed = lcg(seed);
+                    fx = abs_val(seed % WIDTH);
+                    seed = lcg(seed);
+                    fy = abs_val(seed % HEIGHT);
+                }
+                else
+                {
+                    sx.remove(0);
+                    sy.remove(0);
+                    snake_len--;
+                }
+
+                // --- draw ---
+                cls();
+
+                // top border
+                at(1, 1);
+                print("+");
+                for i in 0..WIDTH { print("-"); }
+                print("+");
+
+                // side borders
+                for row in 0..HEIGHT
+                {
+                    at(row + 2, 1);          print("|");
+                    at(row + 2, WIDTH + 2);  print("|");
+                }
+
+                // bottom border
+                at(HEIGHT + 2, 1);
+                print("+");
+                for i in 0..WIDTH { print("-"); }
+                print("+");
+
+                // food
+                at(fy + 2, fx + 2);
+                print("@");
+
+                // snake
+                for i in 0..snake_len
+                {
+                    at(sy[i] + 2, sx[i] + 2);
+                    if (i == snake_len - 1) { print("O"); }
+                    else                    { print("o"); }
+                }
+
+                // score
+                at(HEIGHT + 4, 1);
+                print("Score: {}   WASD = move   Q = quit", score);
+
+                flush();
+            }
+        }
+
+        usleep(120000);
+    }
+
+    // restore terminal
+    system("stty cooked echo");
+    print("\x1b[?25h");   // show cursor
+    cls();
+    flush();
+
+    println("Game over!  Score: {}", score);
+}

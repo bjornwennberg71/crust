@@ -1,0 +1,25 @@
+function classify(int n): int
+{
+    match n
+    {
+        1 | 2 | 3 =>
+        {
+            return 1;
+        }
+        4 | 5 =>
+        {
+            return 2;
+        }
+        default =>
+        {
+            return 0;
+        }
+    }
+}
+
+function main()
+{
+    int a = classify(2);
+    int b = classify(5);
+    int c = classify(99);
+}

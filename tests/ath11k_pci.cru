@@ -1,0 +1,402 @@
+// ath11k_pci.cru — crust port of drivers/net/wireless/ath/ath11k/pci.c
+//
+// The real driver is the PCI glue layer for Qualcomm's ath11k WiFi stack.
+// Target hardware: QCNFA765 (WCN6855 die, PCIe WiFi 6E) — Bjørn's card.
+//
+// A kernel module cannot run as a standalone binary, so this is a userspace
+// simulation: same constants, same register access patterns, same probe/remove
+// and power-management logic — minus the actual pci_iomap and request_irq calls.
+
+// ── PCI device IDs ───────────────────────────────────────────────────────────
+
+const u32 QCA6390_DEVICE_ID = 0x1101;
+const u32 WCN6855_DEVICE_ID = 0x1103;  // QCNFA765 uses this die
+const u32 QCA6490_DEVICE_ID = 0x1104;
+
+// ── PCI window register ──────────────────────────────────────────────────────
+// ATH11K exposes a 512 KB sliding window at BAR+0x80000.  Writing the control
+// register (BAR+0x310c) selects which 512 KB chunk of the 32-bit SoC address
+// space is visible through the window.  Addresses with bit 19 set are windowed;
+// lower addresses are mapped directly.
+
+const u32 ATH11K_PCI_WINDOW_ENABLE_BIT  = 0x40000000;
+const u32 ATH11K_PCI_WINDOW_REG_ADDRESS = 0x0000310c;
+const u32 ATH11K_PCI_WINDOW_VALUE_MASK  = 0x01f80000;
+const u32 ATH11K_PCI_WINDOW_START       = 0x00080000;
+const u32 ATH11K_PCI_WINDOW_RANGE_MASK  = 0x0007ffff;
+
+// ── SoC registers (direct BAR, no window needed) ─────────────────────────────
+
+const u32 ATH11K_PCI_SOC_HW_VERSION_REG        = 0x00000024;
+const u32 ATH11K_PCI_SOC_HW_VERSION_MAJOR_MASK = 0x00000f00;  // bits[11:8]
+const u32 ATH11K_PCI_SOC_HW_VERSION_MINOR_MASK = 0x000000f0;  // bits[7:4]
+const u32 ATH11K_PCI_SOC_GLOBAL_RESET_ADDRESS   = 0x00000008;
+const u32 ATH11K_PCI_RESET_ASSERT               = 0x00000001;
+const u32 ATH11K_PCI_RESET_DEASSERT             = 0x00000000;
+
+// ── Firmware handshake (windowed addresses) ───────────────────────────────────
+
+const u32 ATH11K_PCI_FW_INDICATOR_ADDR        = 0x0008f008;
+const u32 ATH11K_PCI_FW_RUNNING_INDICATOR     = 0x00000001;
+const u32 ATH11K_PCI_FW_INDICATOR_HOST_READY  = 0x00000002;
+
+// ── IRQ offsets (Copy Engine and Data Path MSI vectors) ──────────────────────
+
+const u32 ATH11K_PCI_IRQ_CE0_OFFSET  = 0x00048010;
+const u32 ATH11K_PCI_IRQ_CE1_OFFSET  = 0x00048018;
+const u32 ATH11K_PCI_IRQ_CE2_OFFSET  = 0x00048020;
+const u32 ATH11K_PCI_IRQ_CE3_OFFSET  = 0x00048028;
+const u32 ATH11K_PCI_IRQ_CE4_OFFSET  = 0x00048030;
+const u32 ATH11K_PCI_IRQ_DP0_OFFSET  = 0x00048048;
+const u32 ATH11K_PCI_IRQ_DP1_OFFSET  = 0x00048050;
+const u32 ATH11K_PCI_IRQ_DP2_OFFSET  = 0x00048058;
+
+const u32 ATH11K_PCI_IRQ_ENABLE_OFF  = 0x00000000;
+const u32 ATH11K_PCI_IRQ_STATUS_OFF  = 0x00000004;
+
+// ── Chip IDs (our simulation tags) ───────────────────────────────────────────
+
+const u32 CHIP_ID_QCA6390 = 0x60;
+const u32 CHIP_ID_WCN6855 = 0x61;
+const u32 CHIP_ID_QCA6490 = 0x62;
+
+// ── Real hardware values from Bjørn's QCNFA765 (from kernel log) ─────────────
+// journalctl -k: "wcn6855 hw2.1"
+//   chip_id 0x12  chip_family 0xb  board_id 0xff  soc_id 0x400c1211
+//   fw_version 0x1106196e  fw_build_timestamp 2024-01-12 11:30
+//   MSI vectors: 32
+
+const u32 WCN6855_SOC_HW_VERSION    = 0x00000a20;  // real silicon: major=0xa minor=0x2 → "wcn6855 hw2.1"
+const u32 WCN6855_CHIP_ID           = 0x00000012;
+const u32 WCN6855_CHIP_FAMILY       = 0x0000000b;
+const u32 WCN6855_SOC_ID            = 0x400c1211;
+const u32 WCN6855_FW_VERSION        = 0x1106196e;
+const u32 WCN6855_FW_INDICATOR_LIVE = 0x00000003;  // RUNNING | HOST_READY
+const int WCN6855_MSI_VECTORS       = 32;
+
+const int ATH11K_PCI_FW_POLL_RETRIES = 10;
+const int ATH11K_PCI_CE_COUNT        = 5;
+
+// ── Device state struct ───────────────────────────────────────────────────────
+
+struct Ath11kPci
+{
+    u32  dev_id;
+    u32  chip_id;
+    u32  hw_rev;
+    u64  bar_addr;
+    bool msi_enabled;
+}
+
+// ── Simulated MMIO ────────────────────────────────────────────────────────────
+// In the kernel these are iowrite32(val, base + offset) / ioread32(base + offset).
+
+function mmio_write32(u64 base, u32 offset, u32 val)
+{
+    println("  wr32 [{:#010x}] <- {:#010x}", offset, val);
+}
+
+function mmio_read32(u64 base, u32 offset): u32
+{
+    println("  rd32 [{:#010x}]", offset);
+    // Return real values read from Bjørn's QCNFA765 by the kernel driver.
+    if (offset == ATH11K_PCI_SOC_HW_VERSION_REG)
+    {
+        return WCN6855_SOC_HW_VERSION;
+    }
+    if (offset == 0x0008f008)
+    {
+        return WCN6855_FW_INDICATOR_LIVE;
+    }
+    return 0;
+}
+
+// ── Windowed register access ──────────────────────────────────────────────────
+
+function ath11k_pci_select_window(u64 bar, u32 offset)
+{
+    u32 win_idx = (offset & ATH11K_PCI_WINDOW_VALUE_MASK) >> 19;
+    u32 win_val = ATH11K_PCI_WINDOW_ENABLE_BIT | (win_idx << 19);
+    mmio_write32(bar, ATH11K_PCI_WINDOW_REG_ADDRESS, win_val);
+}
+
+function ath11k_pci_write32(u64 bar, u32 offset, u32 val)
+{
+    if ((offset & ATH11K_PCI_WINDOW_START) != 0)
+    {
+        ath11k_pci_select_window(bar, offset);
+        u32 aligned = offset & ATH11K_PCI_WINDOW_RANGE_MASK;
+        mmio_write32(bar, ATH11K_PCI_WINDOW_START | aligned, val);
+    }
+    else
+    {
+        mmio_write32(bar, offset, val);
+    }
+}
+
+function ath11k_pci_read32(u64 bar, u32 offset): u32
+{
+    if ((offset & ATH11K_PCI_WINDOW_START) != 0)
+    {
+        ath11k_pci_select_window(bar, offset);
+        u32 aligned = offset & ATH11K_PCI_WINDOW_RANGE_MASK;
+        return mmio_read32(bar, ATH11K_PCI_WINDOW_START | aligned);
+    }
+    else
+    {
+        return mmio_read32(bar, offset);
+    }
+}
+
+// ── SoC version ───────────────────────────────────────────────────────────────
+
+function ath11k_pci_read_soc_version(u64 bar): u32
+{
+    u32 raw   = ath11k_pci_read32(bar, ATH11K_PCI_SOC_HW_VERSION_REG);
+    u32 major = (raw & ATH11K_PCI_SOC_HW_VERSION_MAJOR_MASK) >> 8;
+    u32 minor = (raw & ATH11K_PCI_SOC_HW_VERSION_MINOR_MASK) >> 4;
+    // major=0xa minor=0x2 → kernel labels this "wcn6855 hw2.1"
+    println("  soc_hw_version: raw={:#010x}  major={:#x}  minor={:#x}", raw, major, minor);
+    return raw;
+}
+
+// ── Warm reset ────────────────────────────────────────────────────────────────
+// Assert then deassert the SoC reset line, then poll for firmware ready.
+
+function ath11k_pci_warm_reset(u64 bar): int
+{
+    ath11k_pci_write32(bar, ATH11K_PCI_SOC_GLOBAL_RESET_ADDRESS, ATH11K_PCI_RESET_ASSERT);
+    ath11k_pci_write32(bar, ATH11K_PCI_SOC_GLOBAL_RESET_ADDRESS, ATH11K_PCI_RESET_DEASSERT);
+
+    int poll = 0;
+    while (poll < ATH11K_PCI_FW_POLL_RETRIES)
+    {
+        u32 fw_ind = ath11k_pci_read32(bar, ATH11K_PCI_FW_INDICATOR_ADDR);
+        if ((fw_ind & ATH11K_PCI_FW_RUNNING_INDICATOR) != 0)
+        {
+            println("  fw running (poll {})", poll);
+            return 0;
+        }
+        poll++;
+    }
+    println("  warm_reset: fw did not start");
+    return -1;
+}
+
+// ── Host-ready handshake ──────────────────────────────────────────────────────
+// After fw is running, set the HOST_READY bit so the firmware knows the
+// host driver is up.
+
+function ath11k_pci_host_ready(u64 bar)
+{
+    u32 val = ath11k_pci_read32(bar, ATH11K_PCI_FW_INDICATOR_ADDR);
+    val |= ATH11K_PCI_FW_INDICATOR_HOST_READY;
+    ath11k_pci_write32(bar, ATH11K_PCI_FW_INDICATOR_ADDR, val);
+}
+
+// ── IRQ enable / disable ──────────────────────────────────────────────────────
+
+function ath11k_pci_irq_enable(u64 bar, u32 irq_base)
+{
+    ath11k_pci_write32(bar, irq_base + ATH11K_PCI_IRQ_ENABLE_OFF, 0x00000001);
+}
+
+function ath11k_pci_irq_disable(u64 bar, u32 irq_base)
+{
+    ath11k_pci_write32(bar, irq_base + ATH11K_PCI_IRQ_ENABLE_OFF, 0x00000000);
+}
+
+function ath11k_pci_irq_clear(u64 bar, u32 irq_base)
+{
+    ath11k_pci_write32(bar, irq_base + ATH11K_PCI_IRQ_STATUS_OFF, 0xffffffff);
+}
+
+function ath11k_pci_ext_irq_enable(u64 bar)
+{
+    ath11k_pci_irq_enable(bar, ATH11K_PCI_IRQ_CE0_OFFSET);
+    ath11k_pci_irq_enable(bar, ATH11K_PCI_IRQ_CE1_OFFSET);
+    ath11k_pci_irq_enable(bar, ATH11K_PCI_IRQ_CE2_OFFSET);
+    ath11k_pci_irq_enable(bar, ATH11K_PCI_IRQ_CE3_OFFSET);
+    ath11k_pci_irq_enable(bar, ATH11K_PCI_IRQ_CE4_OFFSET);
+    ath11k_pci_irq_enable(bar, ATH11K_PCI_IRQ_DP0_OFFSET);
+    ath11k_pci_irq_enable(bar, ATH11K_PCI_IRQ_DP1_OFFSET);
+    ath11k_pci_irq_enable(bar, ATH11K_PCI_IRQ_DP2_OFFSET);
+}
+
+function ath11k_pci_ext_irq_disable(u64 bar)
+{
+    ath11k_pci_irq_disable(bar, ATH11K_PCI_IRQ_CE0_OFFSET);
+    ath11k_pci_irq_disable(bar, ATH11K_PCI_IRQ_CE1_OFFSET);
+    ath11k_pci_irq_disable(bar, ATH11K_PCI_IRQ_CE2_OFFSET);
+    ath11k_pci_irq_disable(bar, ATH11K_PCI_IRQ_CE3_OFFSET);
+    ath11k_pci_irq_disable(bar, ATH11K_PCI_IRQ_CE4_OFFSET);
+    ath11k_pci_irq_disable(bar, ATH11K_PCI_IRQ_DP0_OFFSET);
+    ath11k_pci_irq_disable(bar, ATH11K_PCI_IRQ_DP1_OFFSET);
+    ath11k_pci_irq_disable(bar, ATH11K_PCI_IRQ_DP2_OFFSET);
+}
+
+// ── Power management ──────────────────────────────────────────────────────────
+
+function ath11k_pci_pm_suspend(u64 bar): int
+{
+    println("ath11k: suspend");
+    ath11k_pci_ext_irq_disable(bar);
+    ath11k_pci_write32(bar, ATH11K_PCI_SOC_GLOBAL_RESET_ADDRESS, ATH11K_PCI_RESET_ASSERT);
+    return 0;
+}
+
+function ath11k_pci_pm_resume(u64 bar): int
+{
+    println("ath11k: resume");
+    int ret = ath11k_pci_warm_reset(bar);
+    if (ret != 0)
+    {
+        return ret;
+    }
+    ath11k_pci_host_ready(bar);
+    ath11k_pci_ext_irq_enable(bar);
+    return 0;
+}
+
+// ── Remove ────────────────────────────────────────────────────────────────────
+
+function ath11k_pci_remove(u64 bar)
+{
+    println("ath11k: remove");
+    ath11k_pci_ext_irq_disable(bar);
+    ath11k_pci_write32(bar, ATH11K_PCI_SOC_GLOBAL_RESET_ADDRESS, ATH11K_PCI_RESET_ASSERT);
+    println("ath11k: removed");
+}
+
+// ── Probe ─────────────────────────────────────────────────────────────────────
+// In the real driver: pci_enable_device → pci_request_regions → pci_iomap →
+// pci_enable_msi → ath11k_core_init.
+
+function ath11k_pci_probe(u32 dev_id, u64 bar): int
+{
+    println("ath11k: probe  device_id={:#06x}", dev_id);
+
+    u32 chip_id = 0;
+    if (dev_id == QCA6390_DEVICE_ID)
+    {
+        println("ath11k: QCA6390  (WiFi 6)");
+        chip_id = CHIP_ID_QCA6390;
+    }
+    else if (dev_id == WCN6855_DEVICE_ID)
+    {
+        println("ath11k: WCN6855 / QCNFA765  (WiFi 6E)");
+        chip_id = CHIP_ID_WCN6855;
+    }
+    else if (dev_id == QCA6490_DEVICE_ID)
+    {
+        println("ath11k: QCA6490  (WiFi 6E)");
+        chip_id = CHIP_ID_QCA6490;
+    }
+    else
+    {
+        println("ath11k: unknown device_id {:#06x}", dev_id);
+        return -1;
+    }
+
+    println("ath11k: reading SoC hw version");
+    u32 hw_rev = ath11k_pci_read_soc_version(bar);
+
+    println("ath11k: warm reset");
+    int ret = ath11k_pci_warm_reset(bar);
+    if (ret != 0)
+    {
+        println("ath11k: probe failed — fw did not start");
+        return ret;
+    }
+
+    println("ath11k: host ready handshake");
+    ath11k_pci_host_ready(bar);
+
+    println("ath11k: enabling CE/DP IRQs");
+    ath11k_pci_ext_irq_enable(bar);
+
+    // The real driver reads chip_id and soc_id from additional registers.
+    // We use the values the kernel actually reported for this hardware.
+    u32 hw_chip_id     = WCN6855_CHIP_ID;
+    u32 hw_chip_family = WCN6855_CHIP_FAMILY;
+    u32 hw_soc_id      = WCN6855_SOC_ID;
+    u32 fw_version     = WCN6855_FW_VERSION;
+
+    println("ath11k: MSI vectors: {}", WCN6855_MSI_VECTORS);
+    println("ath11k: chip_id {:#x} chip_family {:#x} soc_id {:#010x}", hw_chip_id, hw_chip_family, hw_soc_id);
+    println("ath11k: fw_version {:#010x}", fw_version);
+    println("ath11k: probe OK  sim_chip_id={:#04x}  hw_rev={:#010x}", chip_id, hw_rev);
+    return 0;
+}
+
+// ── Register-field arithmetic demo ───────────────────────────────────────────
+// The real driver does a lot of this when routing MSI vectors and decoding
+// hardware version fields.  Shows that bitwise ops work end-to-end in crust.
+
+function ath11k_pci_bitops_demo()
+{
+    println("--- bitwise register field demo ---");
+
+    // Decode the real SoC version register value from Bjørn's card (hw2.1)
+    u32 soc_ver = WCN6855_SOC_HW_VERSION;
+    u32 major   = (soc_ver & ATH11K_PCI_SOC_HW_VERSION_MAJOR_MASK) >> 8;
+    u32 minor   = (soc_ver & ATH11K_PCI_SOC_HW_VERSION_MINOR_MASK) >> 4;
+    // (0xa, 0x2) → kernel name "wcn6855 hw2.1"
+    println("  soc_ver={:#010x}  major={:#x}  minor={:#x}", soc_ver, major, minor);
+
+    // Build a window control value for address 0x000c3140
+    u32 addr    = 0x000c3140;
+    u32 win_idx = (addr & ATH11K_PCI_WINDOW_VALUE_MASK) >> 19;
+    u32 win_val = ATH11K_PCI_WINDOW_ENABLE_BIT | (win_idx << 19);
+    u32 aligned = addr & ATH11K_PCI_WINDOW_RANGE_MASK;
+    println("  addr={:#010x}  win_idx={}  win_val={:#010x}  aligned={:#010x}",
+            addr, win_idx, win_val, aligned);
+
+    // Bit masking and shifting — clear low byte, flip all bits, extract nibble
+    u32 reg     = 0xdeadbeef;
+    u32 lo_mask = 0x000000ff;
+    u32 cleared = reg & ~lo_mask;
+    u32 flipped = reg ^ 0xffffffff;
+    u32 nibble  = (reg >> 28) & 0x0000000f;
+    u32 rebuilt = (cleared & 0x00ffffff) | (nibble << 28);
+    println("  reg={:#010x}  cleared={:#010x}  flipped={:#010x}", reg, cleared, flipped);
+    println("  nibble={}  rebuilt={:#010x}", nibble, rebuilt);
+
+    // Compound assignments on a status register
+    u32 status = 0x00000000;
+    status |= 0x00000001;   // set bit 0 — CE0 IRQ pending
+    status |= 0x00000004;   // set bit 2 — CE2 IRQ pending
+    status &= ~lo_mask;     // clear low byte (ack all CE IRQs below bit 8)
+    status ^= 0x0000ff00;   // toggle byte 1
+    println("  status after ops: {:#010x}", status);
+}
+
+// ── Entry point ───────────────────────────────────────────────────────────────
+
+function main()
+{
+    println("=== ath11k_pci.cru — Qualcomm WiFi 6E PCI driver (crust port) ===");
+    println("");
+
+    // Simulate the kernel handing us Bjørn's QCNFA765.
+    // bar_addr would come from pci_iomap(pdev, 0, ...) in the real driver.
+    u64 bar = 0xf8000000;
+
+    int ret = ath11k_pci_probe(WCN6855_DEVICE_ID, bar);
+    if (ret != 0)
+    {
+        println("probe failed ({})", ret);
+        return;
+    }
+
+    println("");
+    println("--- suspend / resume ---");
+    ath11k_pci_pm_suspend(bar);
+    ath11k_pci_pm_resume(bar);
+
+    println("");
+    ath11k_pci_bitops_demo();
+
+    println("");
+    ath11k_pci_remove(bar);
+}

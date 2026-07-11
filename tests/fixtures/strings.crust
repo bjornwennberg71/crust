@@ -1,0 +1,27 @@
+function demo_strings()
+{
+    // declaration
+    string name = "Alice";
+    string empty = "";
+
+    // concatenation — two variables
+    string greeting = name + " says hello";
+
+    // concatenation — two variables, no literal
+    string first = "foo";
+    string second = "bar";
+    string both = first + second;
+
+    // methods
+    int len       = name.len();
+    bool has_a    = name.contains("li");
+    string upper  = name.to_uppercase();
+    string lower  = name.to_lowercase();
+    bool is_empty = empty.is_empty();
+
+    // macros without !
+    println("hello {}", name);
+    println("length is {}", len);
+
+    string msg = format("hi, {}!", name);
+}

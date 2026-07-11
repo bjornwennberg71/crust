@@ -1,0 +1,10 @@
+[package]
+name = "crust"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Bjørn Wennberg <bjornwennberg71@gmail.com>"]
+repository = "https://github.com/bjornwennberg71/crust"
+description = "An experiment: a C-familiar language that compiles to native binaries via a Rust backend"
+
+[dependencies]

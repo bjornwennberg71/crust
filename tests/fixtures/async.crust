@@ -1,0 +1,18 @@
+// async/await: C#-style — `async function` declares, prefix `await` consumes.
+// crust adds the tokio runtime automatically when async is used.
+
+async function fetch(): string
+{
+    return "data";
+}
+
+async function run()
+{
+    string data = await fetch();
+    println("{}", data);
+}
+
+async function main()
+{
+    await run();
+}

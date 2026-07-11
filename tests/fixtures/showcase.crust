@@ -1,0 +1,187 @@
+// use statement
+
+// type alias
+type Meters = float;
+type Seconds = float;
+
+// constants
+const int MAX_SPEED = 300;
+static float PI = 3.14159;
+
+// derive + pub struct with pub fields
+@derive(Debug, Clone)
+public struct Vehicle
+{
+    public float speed;
+    public bool  active;
+    public int   id;
+}
+
+// impl block — new style: this, mutable, static
+impl Vehicle
+{
+    public static function new(float speed, int id): Vehicle
+    {
+        return Vehicle { speed: speed, active: true, id: id };
+    }
+
+    public function is_fast(): bool
+    {
+        return this.speed > 100.0;
+    }
+
+    public function accelerate(float amount) mutable
+    {
+        this.speed += amount;
+    }
+
+    public function stop() mutable
+    {
+        this.active = false;
+        this.speed = 0.0;
+    }
+}
+
+// enum with tuple variants
+@derive(Debug)
+public enum Status
+{
+    Ok(int),
+    Error(int, bool),
+    Pending,
+}
+
+// generics in type position, Option, Result
+function find_vehicle(Vec<Vehicle> fleet, int id): Option<int>
+{
+    for (int i = 0; i < 10; i = i + 1)
+    {
+        if (fleet[i].id == id)
+        {
+            return Some(i);
+        }
+    }
+    return None;
+}
+
+// closures, compound assignment, logical ops, unary
+function demo_closures()
+{
+    let double  = function(int x) { return x * 2; };
+    let is_even = function(int x) { return x % 2 == 0; };
+
+    int val  = double(5);
+    bool even = is_even(4);
+
+    int counter = 0;
+    counter += 1;
+    counter -= 1;
+    counter *= 3;
+    counter /= 3;
+
+    bool flag    = true;
+    bool flipped = !flag;
+    int neg      = -42;
+
+    bool both   = flag && !flipped;
+    bool either = flag || flipped;
+}
+
+// if let, while let, else if chain
+function demo_control(Option<int> maybe)
+{
+    if(let Some(n) = maybe)
+    {
+        int doubled = n * 2;
+    }
+
+    if (maybe == None)
+    {
+        return;
+    }
+    else if (maybe == Some(0))
+    {
+        return;
+    }
+    else
+    {
+        return;
+    }
+}
+
+// tuples
+function demo_tuples(): (int, float)
+{
+    (int, float) pair = (1, 2.0);
+    int a   = pair.0;
+    float b = pair.1;
+    return (a, b);
+}
+
+// arrays, index access, cast
+function demo_arrays()
+{
+    int arr[4] = [10, 20, 30, 40];
+    int first = arr[0];
+    float f = (float)first;
+}
+
+// string literals
+function demo_strings()
+{
+    let greeting = "hello, world";
+    let name = "crust";
+}
+
+// match on int, default
+function demo_match(int n): int
+{
+    match n
+    {
+        0:        { return -1; }
+        1 | 2:    { return 0; }
+        default:  { return 1; }
+    }
+}
+
+// unsafe block
+function demo_unsafe()
+{
+    int x = 42;
+    unsafe
+    {
+        int y = x * 2;
+    }
+}
+
+// Result
+function parse_and_double(int n): Result<int, bool>
+{
+    int result = n * 2;
+    return Ok(result);
+}
+
+// pub function
+public function main()
+{
+    Vehicle v = Vehicle::new(50.0, 1);
+    v.accelerate(60.0);
+
+    bool fast = v.is_fast();
+
+    Status s = Status::Ok(200);
+
+    match s
+    {
+        Status::Ok(code):        { int c = code; }
+        Status::Error(code, b):  { int c = code; }
+        Status::Pending:         { return; }
+    }
+
+    demo_closures();
+    let t = demo_tuples();
+    demo_arrays();
+    demo_strings();
+    int m = demo_match(2);
+    demo_unsafe();
+}

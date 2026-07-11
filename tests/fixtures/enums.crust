@@ -1,0 +1,35 @@
+enum Direction
+{
+    North,
+    South,
+    East,
+    West,
+}
+
+enum Shape
+{
+    Circle(float),
+    Rect(float, float),
+}
+
+function area(Shape s): float
+{
+    match s
+    {
+        Shape::Circle(r) =>
+        {
+            return r * r;
+        }
+        Shape::Rect(w, h) =>
+        {
+            return w * h;
+        }
+    }
+}
+
+function main()
+{
+    Direction d = Direction::North;
+    Shape s = Shape::Circle(3.0);
+    float a = area(s);
+}

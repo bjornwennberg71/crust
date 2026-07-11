@@ -1,0 +1,33 @@
+function main()
+{
+    Vec<int> nums = vec(1, 2, 3, 4, 5);
+
+    // for-in over a collection
+    for x in nums
+    {
+        println("{}", x);
+    }
+
+    // range loops
+    for i in 0..5
+    {
+        println("{}", i);
+    }
+
+    for i in 1..=5
+    {
+        println("{}", i);
+    }
+
+    // iterator method chains
+    Vec<int> doubled = nums.iter().map(function(int x) { return x * 2; }).collect();
+    Vec<int> evens   = nums.iter().filter(function(int x) { return x % 2 == 0; }).collect();
+    int sum          = nums.iter().sum();
+    int count        = nums.iter().count();
+
+    // chained
+    Vec<int> big_evens = nums.iter()
+        .filter(function(int x) { return x % 2 == 0; })
+        .map(function(int x)    { return x * 10; })
+        .collect();
+}

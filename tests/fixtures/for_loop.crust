@@ -1,0 +1,14 @@
+function sum(int n): int
+{
+    int total = 0;
+    for (int i = 0; i < n; i = i + 1)
+    {
+        total = total + i;
+    }
+    return total;
+}
+
+function main()
+{
+    int s = sum(5);
+}

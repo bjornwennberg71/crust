@@ -1,0 +1,222 @@
+// battery2mqtt.cru — simulates a multi-module battery pack and publishes
+// voltage / SoC readings to MQTT topics.
+//
+// Dependencies (crust.toml next to this file):
+//   [dependencies]
+//   rumqttc = "0.24"
+//
+// Build:
+//   crust battery2mqtt.cru
+//
+// Topics published:
+//   <prefix>/<id>/voltage              aggregate voltage (average of modules)
+//   <prefix>/<id>/soc                  aggregate SoC    (average of modules)
+//   <prefix>/<id>/module/<m>/voltage
+//   <prefix>/<id>/module/<m>/soc
+
+use rumqttc::Client;
+use rumqttc::MqttOptions;
+use rumqttc::QoS;
+use std::time::Duration;
+use std::fs;
+
+// ------------------------------------------------------------------- types
+
+struct Config
+{
+    string mqtt_host;
+    int    mqtt_port;
+    string topic_prefix;
+    int    num_batteries;
+    int    modules_per_battery;
+    int    interval_ms;
+}
+
+@derive(Clone)
+struct BatteryModule
+{
+    float voltage;
+    float soc;
+}
+
+@derive(Clone)
+struct Battery
+{
+    int                id;
+    Vec<BatteryModule> modules;
+    float              voltage;
+    float              soc;
+}
+
+// ------------------------------------------------------------ battery math
+
+// LiFePO4 voltage curve: 42 V at 0 %, 54.6 V at 100 %
+function soc_to_voltage(float soc): float
+{
+    return 42.0 + (soc / 100.0) * 12.6;
+}
+
+function new_battery(int id, int num_modules): Battery
+{
+    Vec<BatteryModule> modules = vec();
+    for (int m = 0; m < num_modules; m++)
+    {
+        float soc = 100.0 - (id as float) * 5.0 - (m as float) * 0.5;
+        modules.push(BatteryModule { voltage: soc_to_voltage(soc), soc: soc });
+    }
+    return Battery { id: id, modules: modules, voltage: 0.0, soc: 0.0 };
+}
+
+function update_battery(&mut Battery bat, float delta_soc)
+{
+    float total_soc = 0.0;
+    float total_v   = 0.0;
+    int   n         = bat.modules.len();
+
+    for (int m = 0; m < n; m++)
+    {
+        bat.modules[m].soc -= delta_soc;
+        if (bat.modules[m].soc < 0.0) { bat.modules[m].soc = 0.0; }
+        bat.modules[m].voltage = soc_to_voltage(bat.modules[m].soc);
+        total_soc += bat.modules[m].soc;
+        total_v   += bat.modules[m].voltage;
+    }
+
+    bat.soc     = total_soc / (n as float);
+    bat.voltage = total_v   / (n as float);
+}
+
+// ----------------------------------------------------------- config parser
+
+function load_config(string path): Config
+{
+    Config cfg = Config {
+        mqtt_host:           "localhost",
+        mqtt_port:           1883,
+        topic_prefix:        "battery",
+        num_batteries:       1,
+        modules_per_battery: 4,
+        interval_ms:         1000,
+    };
+
+    match fs::read_to_string(&path)
+    {
+        Err(_): { return cfg; }
+        Ok(content):
+        {
+            for line in content.lines()
+            {
+                let trimmed = line.trim();
+                if (trimmed.starts_with("#") || trimmed.is_empty()) { continue; }
+
+                if let Some(kv) = trimmed.split_once("=")
+                {
+                    let key = kv.0.trim();
+                    let val = kv.1.trim();
+
+                    match key
+                    {
+                        "mqtt_host":           { cfg.mqtt_host           = val.to_string(); }
+                        "mqtt_port":           { cfg.mqtt_port           = val.parse().unwrap_or(1883); }
+                        "topic_prefix":        { cfg.topic_prefix        = val.to_string(); }
+                        "num_batteries":       { cfg.num_batteries       = val.parse().unwrap_or(1); }
+                        "modules_per_battery": { cfg.modules_per_battery = val.parse().unwrap_or(4); }
+                        "interval_ms":         { cfg.interval_ms         = val.parse().unwrap_or(1000); }
+                        default:               {}
+                    }
+                }
+            }
+        }
+    }
+    return cfg;
+}
+
+// ---------------------------------------------------------- MQTT publishing
+
+function publish_f(&mut Client client, string topic, float val)
+{
+    let payload = format("{:.2}", val);
+    client.publish(topic, QoS::AtLeastOnce, true, payload.as_bytes()).unwrap();
+}
+
+function publish_all(&mut Client client, &Vec<Battery> bats, string prefix)
+{
+    for b in bats
+    {
+        publish_f(client, format("{}/{}/voltage", prefix, b.id), b.voltage);
+        publish_f(client, format("{}/{}/soc",     prefix, b.id), b.soc);
+
+        for (int m = 0; m < b.modules.len(); m++)
+        {
+            publish_f(client,
+                format("{}/{}/module/{}/voltage", prefix, b.id, m),
+                b.modules[m].voltage);
+            publish_f(client,
+                format("{}/{}/module/{}/soc", prefix, b.id, m),
+                b.modules[m].soc);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------- main
+
+function main()
+{
+    string config_path = "battery2mqtt.conf";
+
+    int i = 1;                       // args[0] is the program name, like C
+    while (i < args.len())
+    {
+        if (args[i] == "-c" && i + 1 < args.len())
+        {
+            i++;
+            config_path = args[i].clone();
+        }
+        else if (args[i] == "-h")
+        {
+            println("usage: battery2mqtt [-c config]");
+            return;
+        }
+        i++;
+    }
+
+    Config cfg = load_config(config_path.clone());
+
+    Vec<Battery> batteries = vec();
+    for (int b = 0; b < cfg.num_batteries; b++)
+    {
+        batteries.push(new_battery(b, cfg.modules_per_battery));
+    }
+
+    let mut opts = MqttOptions::new("battery2mqtt", cfg.mqtt_host.clone(), cfg.mqtt_port as u16);
+    opts.set_keep_alive(Duration::from_secs(5));
+
+    let pair = Client::new(opts, 10);
+    let mut client  = pair.0;
+    let connection  = pair.1;
+
+    // drain the rumqttc eventloop in a background thread — the connection is
+    // moved into the thread automatically
+    spawn(function() {
+        for e in connection.iter()
+        {
+        }
+    });
+
+    println("connected to {}:{} — publishing every {} ms",
+        cfg.mqtt_host, cfg.mqtt_port, cfg.interval_ms);
+
+    float discharge_per_tick = 0.05;
+
+    while (true)
+    {
+        publish_all(&mut client, &batteries, cfg.topic_prefix.clone());
+
+        for (int b = 0; b < batteries.len(); b++)
+        {
+            update_battery(&mut batteries[b], discharge_per_tick);
+        }
+
+        sleep_ms(cfg.interval_ms);
+    }
+}

@@ -1,0 +1,43 @@
+
+function main()
+{
+    HashMap<string, int> scores = HashMap::new();
+
+    // insert
+    scores.insert("Alice", 100);
+    scores.insert("Bob",   85);
+    scores.insert("Carol", 92);
+
+    // lookup
+    if let Some(val) = scores.get("Alice")
+    {
+        println("Alice scored: {}", val);
+    }
+
+    // check existence
+    bool has_bob = scores.contains_key("Bob");
+
+    // remove
+    scores.remove("Bob");
+
+    // size
+    int  len   = scores.len();
+    bool empty = scores.is_empty();
+
+    // iterate keys and values
+    for key in scores.keys()
+    {
+        println("key: {}", key);
+    }
+
+    for val in scores.values()
+    {
+        println("val: {}", val);
+    }
+
+    // iterate key-value pairs
+    for entry in scores.iter()
+    {
+        println("entry: {:?}", entry);
+    }
+}

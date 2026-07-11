@@ -1,0 +1,44 @@
+function main()
+{
+    int target = 10000;
+    if (args.len() > 1)
+    {
+        target = args[1].parse();
+    }
+
+    Vec<int> primes = vec();
+    int candidate = 2;
+    int count = 0;
+
+    while (count < target)
+    {
+        bool is_prime = true;
+        int i = 0;
+
+        while (i < count && is_prime)
+        {
+            int p = primes[i];
+            if (p * p > candidate)
+            {
+                i = count;
+            }
+            else if (candidate % p == 0)
+            {
+                is_prime = false;
+            }
+            else
+            {
+                i = i + 1;
+            }
+        }
+
+        if (is_prime)
+        {
+            primes.push(candidate);
+            count = count + 1;
+        }
+        candidate = candidate + 1;
+    }
+
+    println("prime #{} = {}", target, primes[target - 1]);
+}

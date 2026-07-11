@@ -1,0 +1,26 @@
+// derive: @derive(...) is canonical; #[derive(...)] is also accepted
+
+@derive(Debug, Clone)
+struct Point
+{
+    int x;
+    int y;
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum Color
+{
+    Red,
+    Green,
+    Blue,
+}
+
+function main()
+{
+    Point p = Point { x: 1, y: 2 };
+    Point q = p.clone();
+    println("{:?} {:?}", p, q);
+
+    Color c = Color::Green;
+    println("{:?}", c);
+}

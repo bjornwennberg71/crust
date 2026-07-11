@@ -1,0 +1,199 @@
+// pci_probe.cru — userspace PCI probe in crust, against real hardware.
+//
+// The follow-up to tests/ath11k_pci.cru: that file simulates the driver's
+// register choreography; this one actually touches the device. Everything
+// here is a real syscall — no mocked values.
+//
+//   1. enumerate /sys/bus/pci/devices (std::fs)
+//   2. parse the QCNFA765's PCI config space from the raw binary file
+//   3. mmap BAR0 via extern "C" open/mmap and read SOC_HW_VERSION (0x24)
+//      with a volatile load — the same register the kernel driver reads
+//      at probe. Requires root; steps 1-2 do not.
+//
+// Read-only by design: the ath11k driver is bound and live, so this never
+// writes a register and never touches the windowed address space (window
+// selection would mean writing the window control register).
+//
+// Build:  crust examples/pci_probe.cru
+// Run:    ./pci_probe            (enumeration + config space)
+//         sudo ./pci_probe       (+ the real BAR0 register read)
+
+use std::fs;
+use std::ptr;
+
+extern "C"
+{
+    i32  open(*char path, i32 flags);
+    i32  close(i32 fd);
+    *u32 mmap(*u32 addr, u64 length, i32 prot, i32 flags, i32 fd, i64 offset);
+    i32  munmap(*u32 addr, u64 length);
+}
+
+const i32 O_RDONLY   = 0;
+const i32 PROT_READ  = 1;
+const i32 MAP_SHARED = 1;
+
+// SOC_HW_VERSION lives at BAR0 + 0x24 — direct-mapped, no window needed.
+// Value seen by the kernel driver on this card: 0x00000a20 ("wcn6855 hw2.1").
+const int SOC_HW_VERSION_EXPECTED = 0xa20;
+
+function read_sysfs(string path): string
+{
+    match fs::read_to_string(path)
+    {
+        Ok(s):  { return s.trim().to_string(); }
+        Err(_): { return "?"; }
+    }
+}
+
+function vendor_name(string v): string
+{
+    if (v == "0x8086") { return "Intel"; }
+    if (v == "0x8087") { return "Intel"; }
+    if (v == "0x10de") { return "NVIDIA"; }
+    if (v == "0x1022") { return "AMD"; }
+    if (v == "0x1002") { return "AMD/ATI"; }
+    if (v == "0x10ec") { return "Realtek"; }
+    if (v == "0x144d") { return "Samsung"; }
+    if (v == "0x17cb") { return "Qualcomm"; }
+    return "";
+}
+
+function cfg_read16(&Vec<u8> cfg, int off): int
+{
+    return (cfg[off] as int) | ((cfg[off + 1] as int) << 8);
+}
+
+function cfg_read32(&Vec<u8> cfg, int off): int
+{
+    return (cfg[off] as int)
+         | ((cfg[off + 1] as int) << 8)
+         | ((cfg[off + 2] as int) << 16)
+         | ((cfg[off + 3] as int) << 24);
+}
+
+// Map the first page of BAR0 and read SOC_HW_VERSION with a volatile load.
+// Returns the raw register value, or -1 if the mapping failed.
+function read_soc_version(string bdf): int
+{
+    // extern "C" open() needs a NUL-terminated C string — embed the \0
+    string path = format("/sys/bus/pci/devices/{}/resource0\0", bdf);
+
+    let fd = open(path.as_ptr() as *i8, O_RDONLY);
+    if (fd < 0)
+    {
+        println("  cannot open resource0 — mapping the BAR needs root, run with sudo");
+        return 0 - 1;
+    }
+
+    let base = mmap(NULL, 4096, PROT_READ, MAP_SHARED, fd, 0);
+    if ((base as i64) == (0 - 1))
+    {
+        println("  mmap of BAR0 failed");
+        close(fd);
+        return 0 - 1;
+    }
+
+    int result = 0;
+    unsafe
+    {
+        let reg = base.add(9);   // byte offset 0x24 = u32 index 9
+        u32 raw = ptr::read_volatile(reg);
+        result = raw as int;
+    }
+
+    munmap(base, 4096);
+    close(fd);
+    return result;
+}
+
+function main()
+{
+    println("=== pci_probe.cru — userspace PCI probe in crust, real hardware ===");
+    println("");
+    println("--- PCI bus (/sys/bus/pci/devices) ---");
+
+    string wifi = "";
+    Vec<string> rows = vec();
+
+    for entry in fs::read_dir("/sys/bus/pci/devices").unwrap()
+    {
+        let e = entry.unwrap();
+        string bdf    = e.file_name().into_string().unwrap();
+        string base   = format("/sys/bus/pci/devices/{}", bdf);
+        string vendor = read_sysfs(format("{}/vendor", base));
+        string device = read_sysfs(format("{}/device", base));
+        string cls    = read_sysfs(format("{}/class", base));
+        rows.push(format("  {}  {} {}  class {}  {}",
+                         bdf, vendor, device, cls, vendor_name(vendor.clone())));
+        if (vendor == "0x17cb" && device == "0x1103")
+        {
+            wifi = bdf.clone();
+        }
+    }
+
+    rows.sort();
+    for row in rows
+    {
+        println("{}", row);
+    }
+
+    println("");
+    if (wifi == "")
+    {
+        println("no WCN6855 / QCNFA765 (17cb:1103) on this machine — stopping here");
+        return;
+    }
+
+    println("--- QCNFA765 at {} ---", wifi);
+    string uevent = read_sysfs(format("/sys/bus/pci/devices/{}/uevent", wifi));
+    for line in uevent.lines()
+    {
+        println("  {}", line);
+    }
+
+    println("");
+    println("--- config space ({} bytes readable) ---", 64);
+    let cfg = fs::read(format("/sys/bus/pci/devices/{}/config", wifi)).unwrap();
+    int vid  = cfg_read16(&cfg, 0);
+    int did  = cfg_read16(&cfg, 2);
+    int cmd  = cfg_read16(&cfg, 4);
+    int rev  = cfg[8] as int;
+    int bar0 = cfg_read32(&cfg, 16);
+    int bar1 = cfg_read32(&cfg, 20);
+    println("  vendor={:#06x}  device={:#06x}  command={:#06x}  rev={}", vid, did, cmd, rev);
+    if ((bar0 & 0x6) == 0x4)
+    {
+        int addr = (bar1 << 32) | (bar0 & (0 - 16));
+        println("  BAR0: 64-bit memory, addr={:#x}", addr);
+    }
+    else
+    {
+        println("  BAR0: 32-bit memory, addr={:#x}", bar0 & (0 - 16));
+    }
+
+    println("");
+    println("--- BAR0 register read: SOC_HW_VERSION @ 0x24 ---");
+    int raw = read_soc_version(wifi.clone());
+    if (raw < 0)
+    {
+        return;
+    }
+    if (raw == 0xffffffff)
+    {
+        println("  read {:#010x} — device is powered down (runtime PM), nothing to decode", raw);
+        return;
+    }
+
+    int major = (raw & 0xf00) >> 8;
+    int minor = (raw & 0xf0) >> 4;
+    println("  raw={:#010x}  major={:#x}  minor={:#x}", raw, major, minor);
+    if (raw == SOC_HW_VERSION_EXPECTED)
+    {
+        println("  matches the value the kernel driver logged for this card (wcn6855 hw2.1)");
+    }
+    else
+    {
+        println("  differs from the kernel-logged value {:#010x}", SOC_HW_VERSION_EXPECTED);
+    }
+}

@@ -1,0 +1,24 @@
+// heap and shared pointers: box<T>, rc<T>, arc<T>
+
+function main()
+{
+    // heap allocation
+    box<int> b = box(5);
+    println("boxed: {}", b);
+
+    // reference counted — single thread
+    rc<int> a = rc(42);
+    rc<int> a2 = a.clone();
+    println("rc: {} {}", a, a2);
+
+    // atomically reference counted — safe to share across threads
+    arc<string> s = arc("shared");
+    arc<string> s2 = s.clone();
+
+    thread t = spawn(function() {
+        println("thread sees nothing here, plain closure");
+    });
+    t.join();
+
+    println("arc: {} {}", s, s2);
+}

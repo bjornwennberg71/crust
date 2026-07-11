@@ -1,0 +1,13 @@
+// extern "C" block — declare C functions to call from crust
+extern "C"
+{
+    void printf(*char fmt);
+    int strlen(*char s);
+    *void malloc(int size);
+}
+
+function main()
+{
+    printf("hello from crust\n");
+    int n = strlen("hello");
+}

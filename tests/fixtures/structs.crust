@@ -1,0 +1,19 @@
+struct Point
+{
+    float x;
+    float y;
+}
+
+function distance(Point a, Point b): float
+{
+    float dx = a.x - b.x;
+    float dy = a.y - b.y;
+    return dx * dx + dy * dy;
+}
+
+function main()
+{
+    Point p = Point { x: 1.0, y: 2.0 };
+    Point q = Point { x: 4.0, y: 6.0 };
+    float d = distance(p, q);
+}
