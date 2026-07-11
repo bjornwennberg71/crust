@@ -79,14 +79,14 @@ function read_soc_version(string bdf): int
     // extern "C" open() needs a NUL-terminated C string — embed the \0
     string path = format("/sys/bus/pci/devices/{}/resource0\0", bdf);
 
-    let fd = open(path.as_ptr() as *i8, O_RDONLY);
+    auto fd = open(path.as_ptr() as *i8, O_RDONLY);
     if (fd < 0)
     {
         println("  cannot open resource0 — mapping the BAR needs root, run with sudo");
         return 0 - 1;
     }
 
-    let base = mmap(NULL, 4096, PROT_READ, MAP_SHARED, fd, 0);
+    auto base = mmap(NULL, 4096, PROT_READ, MAP_SHARED, fd, 0);
     if ((base as i64) == (0 - 1))
     {
         println("  mmap of BAR0 failed");
@@ -97,7 +97,7 @@ function read_soc_version(string bdf): int
     int result = 0;
     unsafe
     {
-        let reg = base.add(9);   // byte offset 0x24 = u32 index 9
+        auto reg = base.add(9);   // byte offset 0x24 = u32 index 9
         u32 raw = ptr::read_volatile(reg);
         result = raw as int;
     }
@@ -118,7 +118,7 @@ function main()
 
     for entry in fs::read_dir("/sys/bus/pci/devices").unwrap()
     {
-        let e = entry.unwrap();
+        auto e = entry.unwrap();
         string bdf    = e.file_name().into_string().unwrap();
         string base   = format("/sys/bus/pci/devices/{}", bdf);
         string vendor = read_sysfs(format("{}/vendor", base));
@@ -154,7 +154,7 @@ function main()
 
     println("");
     println("--- config space ({} bytes readable) ---", 64);
-    let cfg = fs::read(format("/sys/bus/pci/devices/{}/config", wifi)).unwrap();
+    auto cfg = fs::read(format("/sys/bus/pci/devices/{}/config", wifi)).unwrap();
     int vid  = cfg_read16(&cfg, 0);
     int did  = cfg_read16(&cfg, 2);
     int cmd  = cfg_read16(&cfg, 4);

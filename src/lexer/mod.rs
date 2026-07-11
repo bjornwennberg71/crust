@@ -423,6 +423,7 @@ pub fn tokenize(source: &str) -> Vec<Token> {
                 let kind = match word {
                     "function" => TokenKind::KwFunction,
                     "let"      => TokenKind::KwLet,
+                    "auto"     => TokenKind::KwLet,   // C++ spelling, same meaning
                     "return"   => TokenKind::KwReturn,
                     "const"    => TokenKind::KwConst,
                     "static"   => TokenKind::KwStatic,

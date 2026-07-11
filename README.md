@@ -177,6 +177,7 @@ float y    = 3.14;
 bool flag  = true;
 string s   = "hello";   // owned String
 let z      = x + 1;     // inferred type
+auto v     = x * 2;     // `auto` is the same as `let` — C++ spelling
 let mut w  = x + 2;     // `mut` is accepted but optional — everything is mutable
 ```
 
@@ -391,7 +392,7 @@ bool empty = v.is_empty();
 bool has = v.contains(42);   // → v.contains(&42)
 bool has = v.contains(x);    // → v.contains(&x)
 
-let slice = v[1..3];         // slice range
+auto slice = v[1..3];        // slice range
 ```
 
 ### Iterator chains
@@ -445,9 +446,9 @@ string msg = format("hi, {}!", name);
 
 ### Closures
 ```c
-let double  = function(int x) { return x * 2; };
-let is_even = function(int x) { return x % 2 == 0; };
-int result  = double(5);
+auto double  = function(int x) { return x * 2; };
+auto is_even = function(int x) { return x % 2 == 0; };
+int result   = double(5);
 ```
 
 ### Threads

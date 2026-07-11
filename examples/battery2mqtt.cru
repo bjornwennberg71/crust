@@ -106,13 +106,13 @@ function load_config(string path): Config
         {
             for line in content.lines()
             {
-                let trimmed = line.trim();
+                auto trimmed = line.trim();
                 if (trimmed.starts_with("#") || trimmed.is_empty()) { continue; }
 
                 if let Some(kv) = trimmed.split_once("=")
                 {
-                    let key = kv.0.trim();
-                    let val = kv.1.trim();
+                    auto key = kv.0.trim();
+                    auto val = kv.1.trim();
 
                     match key
                     {
@@ -135,7 +135,7 @@ function load_config(string path): Config
 
 function publish_f(&mut Client client, string topic, float val)
 {
-    let payload = format("{:.2}", val);
+    auto payload = format("{:.2}", val);
     client.publish(topic, QoS::AtLeastOnce, true, payload.as_bytes()).unwrap();
 }
 
@@ -188,12 +188,12 @@ function main()
         batteries.push(new_battery(b, cfg.modules_per_battery));
     }
 
-    let mut opts = MqttOptions::new("battery2mqtt", cfg.mqtt_host.clone(), cfg.mqtt_port as u16);
+    auto mut opts = MqttOptions::new("battery2mqtt", cfg.mqtt_host.clone(), cfg.mqtt_port as u16);
     opts.set_keep_alive(Duration::from_secs(5));
 
-    let pair = Client::new(opts, 10);
-    let mut client  = pair.0;
-    let connection  = pair.1;
+    auto pair = Client::new(opts, 10);
+    auto mut client  = pair.0;
+    auto connection  = pair.1;
 
     // drain the rumqttc eventloop in a background thread — the connection is
     // moved into the thread automatically

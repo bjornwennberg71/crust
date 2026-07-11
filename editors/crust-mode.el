@@ -8,7 +8,7 @@ Derived from c++-mode for Allman-style indentation and // comments."
    nil
    `(;; keywords
      (,(regexp-opt
-        '("function" "impl" "trait" "let" "in"
+        '("function" "impl" "trait" "let" "auto" "in"
           "match" "default" "this" "public" "mutable"
           "use" "type" "unsafe" "extern"
           "async" "await")

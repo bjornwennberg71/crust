@@ -67,8 +67,8 @@ function find_vehicle(Vec<Vehicle> fleet, int id): Option<int>
 // closures, compound assignment, logical ops, unary
 function demo_closures()
 {
-    let double  = function(int x) { return x * 2; };
-    let is_even = function(int x) { return x % 2 == 0; };
+    auto double  = function(int x) { return x * 2; };
+    auto is_even = function(int x) { return x % 2 == 0; };
 
     int val  = double(5);
     bool even = is_even(4);
@@ -129,8 +129,8 @@ function demo_arrays()
 // string literals
 function demo_strings()
 {
-    let greeting = "hello, world";
-    let name = "crust";
+    auto greeting = "hello, world";
+    auto name = "crust";
 }
 
 // match on int, default
@@ -179,7 +179,7 @@ public function main()
     }
 
     demo_closures();
-    let t = demo_tuples();
+    auto t = demo_tuples();
     demo_arrays();
     demo_strings();
     int m = demo_match(2);

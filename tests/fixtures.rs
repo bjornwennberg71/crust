@@ -76,6 +76,14 @@ fn async_await() {
 }
 
 #[test]
+fn auto_and_let_equivalent() {
+    let with_let  = crust::transpile("function main()\n{\n    let x = 42;\n    let mut y = x + 1;\n}\n");
+    let with_auto = crust::transpile("function main()\n{\n    auto x = 42;\n    auto mut y = x + 1;\n}\n");
+    assert_eq!(with_let, with_auto);
+    assert!(with_let.contains("let mut x = 42;"));
+}
+
+#[test]
 fn derive_both_forms_equivalent() {
     let at = crust::transpile("@derive(Debug, Clone)\nstruct P\n{\n    int x;\n}\n");
     let hash = crust::transpile("#[derive(Debug, Clone)]\nstruct P\n{\n    int x;\n}\n");
