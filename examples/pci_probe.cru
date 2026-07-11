@@ -116,7 +116,7 @@ function main()
     string wifi = "";
     Vec<string> rows = vec();
 
-    for entry in fs::read_dir("/sys/bus/pci/devices").unwrap()
+    for (entry : fs::read_dir("/sys/bus/pci/devices").unwrap())
     {
         auto e = entry.unwrap();
         string bdf    = e.file_name().into_string().unwrap();
@@ -133,7 +133,7 @@ function main()
     }
 
     rows.sort();
-    for row in rows
+    for (row : rows)
     {
         println("{}", row);
     }
@@ -147,7 +147,7 @@ function main()
 
     println("--- QCNFA765 at {} ---", wifi);
     string uevent = read_sysfs(format("/sys/bus/pci/devices/{}/uevent", wifi));
-    for line in uevent.lines()
+    for (line : uevent.lines())
     {
         println("  {}", line);
     }

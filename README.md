@@ -156,13 +156,13 @@ Pass by reference with `&` (read-only) or `&mut` (mutable). Works for any type.
 function sum(&Vec<int> v): int   // read-only reference — v is not moved
 {
     int total = 0;
-    for x in v { total += x; }
+    for (x : v) { total += x; }
     return total;
 }
 
 function fill(&mut Vec<int> v, int n)   // mutable reference — can modify v
 {
-    for i in 0..n { v.push(i); }
+    for (i : 0..n) { v.push(i); }
 }
 
 Vec<int> nums = vec();
@@ -226,12 +226,17 @@ for (int i = 0; i < n; i++)
 }
 ```
 
-### for-in loop (range and collection)
+### range-for loop (range and collection)
+C++ range-for style. `auto` is implied; writing it is fine.
 ```c
-for i in 0..5    { ... }    // exclusive: 0, 1, 2, 3, 4
-for i in 1..=5   { ... }    // inclusive: 1, 2, 3, 4, 5
-for x in items   { ... }    // iterate over a collection
+for (i : 0..5)        { ... }    // exclusive: 0, 1, 2, 3, 4
+for (i : 1..=5)       { ... }    // inclusive: 1, 2, 3, 4, 5
+for (x : items)       { ... }    // iterate over a collection
+for (auto x : items)  { ... }    // same — explicit auto
 ```
+
+Also accepted: `in` instead of `:` (`for (x in items)`), and the bare
+Rust-style form without parentheses (`for x in items`).
 
 ### Increment / decrement
 ```c
@@ -248,7 +253,7 @@ while (running)
 ```
 
 > **Note:** `continue` inside a C-style `for` loop skips the update expression.
-> Use `continue` in `while` and `for-in` loops for correct semantics.
+> Use `continue` in `while` and range-for loops for correct semantics.
 
 ### match
 ```c
@@ -421,9 +426,9 @@ if let Some(val) = scores.get("Alice")
     println("score: {}", val);
 }
 
-for key   in scores.keys()   { println("{}", key); }
-for val   in scores.values() { println("{}", val); }
-for entry in scores.iter()   { println("{:?}", entry); }
+for (key   : scores.keys()) { println("{}", key); }
+for (val   : scores.values()) { println("{}", val); }
+for (entry : scores.iter()) { println("{:?}", entry); }
 ```
 
 ### Strings
@@ -814,7 +819,7 @@ function main()
 {
     Vec<int> nums = vec();
     for (int i = 0; i < 20; i++) { nums.push(i * i); }
-    for n in nums { print("{} ", n); }
+    for (n : nums) { print("{} ", n); }
     println("");
 }
 ```

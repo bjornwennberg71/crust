@@ -76,6 +76,20 @@ fn async_await() {
 }
 
 #[test]
+fn for_in_all_forms_equivalent() {
+    // canonical C++ range-for spelling, with auto implied or explicit,
+    // plus the 'in' alias and the bare Rust-style form
+    let colon      = crust::transpile("function main()\n{\n    for (i : 0..5) { println(\"{}\", i); }\n}\n");
+    let colon_auto = crust::transpile("function main()\n{\n    for (auto i : 0..5) { println(\"{}\", i); }\n}\n");
+    let parens_in  = crust::transpile("function main()\n{\n    for (i in 0..5) { println(\"{}\", i); }\n}\n");
+    let bare       = crust::transpile("function main()\n{\n    for i in 0..5 { println(\"{}\", i); }\n}\n");
+    assert_eq!(colon, colon_auto);
+    assert_eq!(colon, parens_in);
+    assert_eq!(colon, bare);
+    assert!(colon.contains("for i in 0..5"));
+}
+
+#[test]
 fn auto_and_let_equivalent() {
     let with_let  = crust::transpile("function main()\n{\n    let x = 42;\n    let mut y = x + 1;\n}\n");
     let with_auto = crust::transpile("function main()\n{\n    auto x = 42;\n    auto mut y = x + 1;\n}\n");

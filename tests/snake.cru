@@ -106,7 +106,7 @@ function main()
             // self collision
             if (running)
             {
-                for i in 0..snake_len
+                for (i : 0..snake_len)
                 {
                     if (sx[i] == nx && sy[i] == ny) { running = false; break; }
                 }
@@ -139,11 +139,11 @@ function main()
                 // top border
                 at(1, 1);
                 print("+");
-                for i in 0..WIDTH { print("-"); }
+                for (i : 0..WIDTH) { print("-"); }
                 print("+");
 
                 // side borders
-                for row in 0..HEIGHT
+                for (row : 0..HEIGHT)
                 {
                     at(row + 2, 1);          print("|");
                     at(row + 2, WIDTH + 2);  print("|");
@@ -152,7 +152,7 @@ function main()
                 // bottom border
                 at(HEIGHT + 2, 1);
                 print("+");
-                for i in 0..WIDTH { print("-"); }
+                for (i : 0..WIDTH) { print("-"); }
                 print("+");
 
                 // food
@@ -160,7 +160,7 @@ function main()
                 print("@");
 
                 // snake
-                for i in 0..snake_len
+                for (i : 0..snake_len)
                 {
                     at(sy[i] + 2, sx[i] + 2);
                     if (i == snake_len - 1) { print("O"); }

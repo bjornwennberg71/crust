@@ -25,18 +25,18 @@ function main()
     bool empty = scores.is_empty();
 
     // iterate keys and values
-    for key in scores.keys()
+    for (key : scores.keys())
     {
         println("key: {}", key);
     }
 
-    for val in scores.values()
+    for (val : scores.values())
     {
         println("val: {}", val);
     }
 
     // iterate key-value pairs
-    for entry in scores.iter()
+    for (entry : scores.iter())
     {
         println("entry: {:?}", entry);
     }

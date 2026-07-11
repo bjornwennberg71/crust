@@ -3,18 +3,18 @@ function main()
     Vec<int> nums = vec(1, 2, 3, 4, 5);
 
     // for-in over a collection
-    for x in nums
+    for (x : nums)
     {
         println("{}", x);
     }
 
     // range loops
-    for i in 0..5
+    for (i : 0..5)
     {
         println("{}", i);
     }
 
-    for i in 1..=5
+    for (i : 1..=5)
     {
         println("{}", i);
     }

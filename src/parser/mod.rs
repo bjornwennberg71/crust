@@ -422,7 +422,17 @@ impl Parser {
             TokenKind::KwIf     => Stmt::If(self.parse_if()),
             TokenKind::KwWhile  => Stmt::While(self.parse_while()),
             TokenKind::KwFor    => {
-                if matches!(self.peek2(), TokenKind::LParen) {
+                // `for (x : xs)` / `for (auto x : xs)` / `for (x in xs)` is
+                // a for-in despite the parens; C-style `for (init; cond;
+                // update)` is anything else parenthesized. (Ident+Colon
+                // can't start a C-style init, and `::` lexes as ColonColon.)
+                let at = |i: usize| &self.tokens[i.min(self.tokens.len() - 1)].kind;
+                let mut i = self.pos + 2;
+                if matches!(at(i), TokenKind::KwLet) { i += 1; }   // optional auto/let
+                let paren_for_in = matches!(self.peek2(), TokenKind::LParen)
+                    && matches!(at(i), TokenKind::Ident(_))
+                    && matches!(at(i + 1), TokenKind::KwIn | TokenKind::Colon);
+                if matches!(self.peek2(), TokenKind::LParen) && !paren_for_in {
                     Stmt::For(self.parse_for())
                 } else {
                     Stmt::ForIn(self.parse_for_in())
@@ -546,9 +556,19 @@ impl Parser {
     fn parse_for_in(&mut self) -> ForInStmt {
         let span = self.span();
         self.expect(&TokenKind::KwFor);
+        let parens = self.eat(&TokenKind::LParen);   // for (x : xs) — canonical; bare also accepted
+        self.eat(&TokenKind::KwLet);                 // for (auto x : xs) — auto is implied, explicit ok
         let var = self.parse_ident();
-        self.expect(&TokenKind::KwIn);
+        match self.peek() {
+            // ':' is the canonical C++ range-for spelling, 'in' the alias
+            TokenKind::Colon | TokenKind::KwIn => { self.advance(); }
+            other => {
+                let msg = format!("expected ':' or 'in' after for-loop variable, got {}", other.describe());
+                self.error(msg)
+            }
+        }
         let iter = self.parse_expr();
+        if parens { self.expect(&TokenKind::RParen); }
         let body = self.parse_block();
         ForInStmt { span, var, iter, body }
     }
