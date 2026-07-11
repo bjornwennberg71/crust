@@ -76,6 +76,27 @@ fn async_await() {
 }
 
 #[test]
+fn switch_and_match_equivalent() {
+    // switch is the canonical spelling; match is the Rust-flavored alias
+    let sw = crust::transpile(concat!(
+        "function f(Result<int, string> r): int\n{\n",
+        "    switch (r)\n    {\n",
+        "        case Ok(v): { return v; }\n",
+        "        case Err(_): { return 0; }\n",
+        "    }\n}\n",
+    ));
+    let m = crust::transpile(concat!(
+        "function f(Result<int, string> r): int\n{\n",
+        "    match r\n    {\n",
+        "        Ok(v): { return v; }\n",
+        "        Err(_): { return 0; }\n",
+        "    }\n}\n",
+    ));
+    assert_eq!(sw, m);
+    assert!(sw.contains("Ok(v) =>"), "destructuring case not emitted:\n{sw}");
+}
+
+#[test]
 fn for_in_all_forms_equivalent() {
     // canonical C++ range-for spelling, with auto implied or explicit,
     // plus the 'in' alias and the bare Rust-style form

@@ -267,20 +267,36 @@ while (running)
 > **Note:** `continue` inside a C-style `for` loop skips the update expression.
 > Use `continue` in `while` and range-for loops for correct semantics.
 
-### match
+### switch
+C's `switch`, upgraded: cases are full patterns — constants, alternatives,
+and enum/Result destructuring. No fallthrough, ever.
+
 ```c
-match n
+switch (n)
 {
-    1 | 2 | 3:
+    case 1 | 2 | 3:
     {
         return 1;
+    }
+    case -1:
+    {
+        return 0 - 1;
     }
     default:
     {
         return 0;
     }
 }
+
+switch (fs::read_to_string(path))
+{
+    case Ok(content): { use_it(content); }     // destructuring — payload
+    case Err(e):      { println("{}", e); }    // is bound to a variable
+}
 ```
+
+The Rust spelling `match x { pattern: { ... } }` is also accepted — same
+construct, no `case` keyword, `=>` allowed instead of `:`.
 
 ### Structs
 ```c
@@ -332,11 +348,11 @@ public enum Shape
 
 Shape s = Shape::Circle(3.0);
 
-match s
+switch (s)
 {
-    Shape::Circle(r):   { return r * r; }
-    Shape::Rect(w, h):  { return w * h; }
-    Shape::Point:       { return 0; }
+    case Shape::Circle(r):   { return r * r; }
+    case Shape::Rect(w, h):  { return w * h; }
+    case Shape::Point:       { return 0; }
 }
 ```
 
@@ -750,10 +766,10 @@ function read_file(string path): Result<string, string>
 
 function main()
 {
-    match read_file("notes.txt")
+    switch (read_file("notes.txt"))
     {
-        Ok(content): { println("{}", content); }
-        Err(e):      { println("error: {}", e); }
+        case Ok(content): { println("{}", content); }
+        case Err(e):      { println("error: {}", e); }
     }
 }
 ```
@@ -855,8 +871,8 @@ function main()
 
 ### Pattern matching
 
-C `switch` only matches integers and falls through by default. Crust `match` works
-on any type, extracts enum payloads, and never falls through.
+C `switch` only matches integers and falls through by default. Crust `switch`
+works on any type, extracts enum payloads, and never falls through.
 
 **C**
 ```c
@@ -887,11 +903,11 @@ enum Command
 
 function handle(Command cmd)
 {
-    match cmd
+    switch (cmd)
     {
-        Command::Quit:        { println("quitting"); }
-        Command::Move(x, y):  { println("move to {},{}", x, y); }
-        Command::Fire:        { println("fire!"); }
+        case Command::Quit:        { println("quitting"); }
+        case Command::Move(x, y):  { println("move to {},{}", x, y); }
+        case Command::Fire:        { println("fire!"); }
     }
 }
 ```
@@ -961,10 +977,10 @@ function main()
 
     string path = args[1].clone();
 
-    match fs::read_to_string(&path)
+    switch (fs::read_to_string(&path))
     {
-        Err(e): { println("error: {}", e); return; }
-        Ok(content):
+        case Err(e): { println("error: {}", e); return; }
+        case Ok(content):
         {
             int lines = content.lines().count();
             int words = content.split_whitespace().count();
@@ -1017,9 +1033,9 @@ Key differences from crust:
 | | C | crust |
 |---|---|---|
 | MQTT library | libmosquitto (system dep) | rumqttc via crust.toml |
-| Error handling | NULL check + manual free | `match` on `Result` |
+| Error handling | NULL check + manual free | `switch` on `Result` |
 | String topics | `snprintf` into char buf | `format(...)` |
-| Config parsing | `sscanf` + `strcmp` chain | iterator + `match key` |
+| Config parsing | `sscanf` + `strcmp` chain | iterator + `switch (key)` |
 | Loop timing | `usleep` | `sleep_ms(...)` |
 | Event loop drain | pthread | `spawn(...)` |
 | Memory | manual `malloc`/`free` | automatic |

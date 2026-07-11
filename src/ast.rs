@@ -190,8 +190,7 @@ pub enum Stmt {
     While(WhileStmt),
     For(ForStmt),
     ForIn(ForInStmt),
-    Switch(SwitchStmt),
-    Match(MatchStmt),
+    Match(MatchStmt),   // both `switch (x) { case p: ... }` and `match x { p: ... }`
     Unsafe(Block),
     Expr(Expr),
 }
@@ -264,25 +263,6 @@ pub struct ForStmt {
 pub enum ForInit {
     Decl { name: String, ty: Type, init: Expr },
     Expr(Expr),
-}
-
-#[derive(Debug)]
-pub struct SwitchStmt {
-    pub span: Span,
-    pub expr: Expr,
-    pub arms: Vec<SwitchArm>,
-}
-
-#[derive(Debug)]
-pub struct SwitchArm {
-    pub pattern: SwitchPattern,
-    pub body: Block,
-}
-
-#[derive(Debug)]
-pub enum SwitchPattern {
-    Value(Expr),
-    Default,
 }
 
 #[derive(Debug)]

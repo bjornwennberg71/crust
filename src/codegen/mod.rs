@@ -250,19 +250,6 @@ fn emit_stmt(stmt: &Stmt, out: &mut String, indent: usize, ctx: &Ctx) {
             }
             out.push_str(&format!("{}    }}\n{}}}\n", pad, pad));
         }
-        Stmt::Switch(s) => {
-            out.push_str(&format!("{}match {}\n{}{{\n", pad, emit_expr(&s.expr, ctx), pad));
-            for arm in &s.arms {
-                let pat = match &arm.pattern {
-                    SwitchPattern::Value(e) => emit_expr(e, ctx),
-                    SwitchPattern::Default  => "_".to_string(),
-                };
-                out.push_str(&format!("{}    {} =>\n{}    {{\n", pad, pat, pad));
-                emit_block(&arm.body, out, indent + 2, ctx);
-                out.push_str(&format!("{}    }}\n", pad));
-            }
-            out.push_str(&format!("{}}}\n", pad));
-        }
         Stmt::Match(s) => {
             out.push_str(&format!("{}match {}\n{}{{\n", pad, emit_expr(&s.expr, ctx), pad));
             for arm in &s.arms {

@@ -171,11 +171,11 @@ public function main()
 
     Status s = Status::Ok(200);
 
-    match s
+    switch (s)
     {
-        Status::Ok(code):        { int c = code; }
-        Status::Error(code, b):  { int c = code; }
-        Status::Pending:         { return; }
+        case Status::Ok(code):        { int c = code; }
+        case Status::Error(code, b):  { int c = code; }
+        case Status::Pending:         { return; }
     }
 
     demo_closures();

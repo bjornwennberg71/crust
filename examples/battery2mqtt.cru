@@ -102,10 +102,10 @@ function load_config(string path): Config
         interval_ms:         1000,
     };
 
-    match fs::read_to_string(&path)
+    switch (fs::read_to_string(&path))
     {
-        Err(_): { return cfg; }
-        Ok(content):
+        case Err(_): { return cfg; }
+        case Ok(content):
         {
             for (line : content.lines())
             {
@@ -120,15 +120,15 @@ function load_config(string path): Config
                     auto key = kv.0.trim();
                     auto val = kv.1.trim();
 
-                    match key
+                    switch (key)
                     {
-                        "mqtt_host":           { cfg.mqtt_host           = val.to_string(); }
-                        "mqtt_port":           { cfg.mqtt_port           = val.parse().unwrap_or(1883); }
-                        "topic_prefix":        { cfg.topic_prefix        = val.to_string(); }
-                        "num_batteries":       { cfg.num_batteries       = val.parse().unwrap_or(1); }
-                        "modules_per_battery": { cfg.modules_per_battery = val.parse().unwrap_or(4); }
-                        "interval_ms":         { cfg.interval_ms         = val.parse().unwrap_or(1000); }
-                        default:               {}
+                        case "mqtt_host":           { cfg.mqtt_host           = val.to_string(); }
+                        case "mqtt_port":           { cfg.mqtt_port           = val.parse().unwrap_or(1883); }
+                        case "topic_prefix":        { cfg.topic_prefix        = val.to_string(); }
+                        case "num_batteries":       { cfg.num_batteries       = val.parse().unwrap_or(1); }
+                        case "modules_per_battery": { cfg.modules_per_battery = val.parse().unwrap_or(4); }
+                        case "interval_ms":         { cfg.interval_ms         = val.parse().unwrap_or(1000); }
+                        default:                    {}
                     }
                 }
             }

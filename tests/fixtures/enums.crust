@@ -14,13 +14,13 @@ enum Shape
 
 function area(Shape s): float
 {
-    match s
+    switch (s)
     {
-        Shape::Circle(r) =>
+        case Shape::Circle(r):
         {
             return r * r;
         }
-        Shape::Rect(w, h) =>
+        case Shape::Rect(w, h):
         {
             return w * h;
         }

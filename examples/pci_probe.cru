@@ -39,10 +39,10 @@ const int SOC_HW_VERSION_EXPECTED = 0xa20;
 
 function read_sysfs(string path): string
 {
-    match fs::read_to_string(path)
+    switch (fs::read_to_string(path))
     {
-        Ok(s):  { return s.trim().to_string(); }
-        Err(_): { return "?"; }
+        case Ok(s):  { return s.trim().to_string(); }
+        case Err(_): { return "?"; }
     }
 }
 

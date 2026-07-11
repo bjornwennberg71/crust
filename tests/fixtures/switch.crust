@@ -17,9 +17,72 @@ function describe(int n): int
     }
 }
 
+// switch cases are full patterns: destructuring, alternatives, negatives
+function grade(int n): int
+{
+    switch (n)
+    {
+        case 1 | 2 | 3:
+        {
+            return 1;
+        }
+        case -1:
+        {
+            return 0 - 1;
+        }
+        default:
+        {
+            return 0;
+        }
+    }
+}
+
+function area(Shape s): float
+{
+    switch (s)
+    {
+        case Shape::Circle(r):
+        {
+            return r * r;
+        }
+        case Shape::Rect(w, h):
+        {
+            return w * h;
+        }
+        case Shape::Dot:
+        {
+            return 0.0;
+        }
+    }
+}
+
+enum Shape
+{
+    Circle(float),
+    Rect(float, float),
+    Dot,
+}
+
+function unwrap_or_zero(Option<int> maybe): int
+{
+    switch (maybe)
+    {
+        case Some(v):
+        {
+            return v;
+        }
+        case None:
+        {
+            return 0;
+        }
+    }
+}
+
 function main()
 {
     int a = describe(1);
     int b = describe(2);
     int c = describe(99);
+    int g = grade(2) + grade(0 - 1) + unwrap_or_zero(Some(5));
+    float ar = area(Shape::Circle(2.0));
 }

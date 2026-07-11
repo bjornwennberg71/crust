@@ -438,7 +438,7 @@ impl Parser {
                     Stmt::ForIn(self.parse_for_in())
                 }
             }
-            TokenKind::KwSwitch => Stmt::Switch(self.parse_switch()),
+            TokenKind::KwSwitch => Stmt::Match(self.parse_switch()),
             TokenKind::KwMatch  => Stmt::Match(self.parse_match()),
             TokenKind::KwUnsafe => { self.advance(); Stmt::Unsafe(self.parse_block()) }
             // optional explicit `mutable` / `mut` before a type-first declaration
@@ -622,6 +622,14 @@ impl Parser {
     fn parse_match_pattern(&mut self) -> MatchPattern {
         match self.peek().clone() {
             TokenKind::IntLit(n)     => { self.advance(); MatchPattern::IntLit(n) }
+            TokenKind::Minus => {
+                // negative literal pattern: case -1:
+                self.advance();
+                match self.peek().clone() {
+                    TokenKind::IntLit(n) => { self.advance(); MatchPattern::IntLit(-n) }
+                    other => self.error(format!("expected integer after '-' in pattern, got {}", other.describe())),
+                }
+            }
             TokenKind::StringLit(s)  => { self.advance(); MatchPattern::StringLit(s) }
             TokenKind::KwTrue     => { self.advance(); MatchPattern::BoolLit(true) }
             TokenKind::KwFalse    => { self.advance(); MatchPattern::BoolLit(false) }
@@ -673,7 +681,9 @@ impl Parser {
         }
     }
 
-    fn parse_switch(&mut self) -> SwitchStmt {
+    // switch is the canonical spelling of match: cases are full patterns,
+    // including destructuring (`case Ok(s):`) and alternatives (`case 1 | 2:`).
+    fn parse_switch(&mut self) -> MatchStmt {
         let span = self.span();
         self.expect(&TokenKind::KwSwitch);
         self.expect(&TokenKind::LParen);
@@ -682,25 +692,27 @@ impl Parser {
         self.expect(&TokenKind::LBrace);
         let mut arms = Vec::new();
         while *self.peek() != TokenKind::RBrace {
-            let pattern = match self.peek() {
+            let patterns = match self.peek() {
                 TokenKind::KwCase => {
                     self.advance();
-                    let val = self.parse_expr();
-                    self.expect(&TokenKind::Colon);
-                    SwitchPattern::Value(val)
+                    let mut pats = vec![self.parse_match_pattern()];
+                    while self.eat(&TokenKind::Pipe) {
+                        pats.push(self.parse_match_pattern());
+                    }
+                    pats
                 }
                 TokenKind::KwDefault => {
                     self.advance();
-                    self.expect(&TokenKind::Colon);
-                    SwitchPattern::Default
+                    vec![MatchPattern::Wildcard]
                 }
                 other => self.error(format!("expected 'case' or 'default', got {}", other.describe())),
             };
+            self.expect(&TokenKind::Colon);
             let body = self.parse_block();
-            arms.push(SwitchArm { pattern, body });
+            arms.push(MatchArm { patterns, body });
         }
         self.expect(&TokenKind::RBrace);
-        SwitchStmt { span, expr, arms }
+        MatchStmt { span, expr, arms }
     }
 
     // ── expressions ──────────────────────────────────────────────────────────
