@@ -1,6 +1,6 @@
-// derive: @derive(...) is canonical; #[derive(...)] is also accepted
+// derive: #derive(...) is canonical; @derive(...) and Rust's #[derive(...)] are accepted
 
-@derive(Debug, Clone)
+#derive(Debug, Clone)
 struct Point
 {
     int x;

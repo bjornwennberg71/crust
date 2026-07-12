@@ -110,14 +110,16 @@ impl Parser {
     }
 
     fn try_parse_derives(&mut self) -> Vec<String> {
-        // @derive(A, B) — canonical — or #[derive(A, B)] — Rust-style, also accepted
-        let hash_form = match self.peek() {
-            TokenKind::At   => false,
-            TokenKind::Hash => true,
+        // #derive(A, B) — canonical, preprocessor style. Accepted aliases:
+        // @derive(A, B) and Rust's #[derive(A, B)].
+        let bracketed = match self.peek() {
+            TokenKind::At   => { self.advance(); false }
+            TokenKind::Hash => {
+                self.advance();
+                self.eat(&TokenKind::LBracket)   // bracket present = Rust form
+            }
             _ => return Vec::new(),
         };
-        self.advance();
-        if hash_form { self.expect(&TokenKind::LBracket); }
         match self.peek().clone() {
             TokenKind::Ident(s) if s == "derive" => { self.advance(); }
             other => self.error(format!("expected 'derive' in attribute, got {}", other.describe())),
@@ -129,7 +131,7 @@ impl Parser {
             derives.push(self.parse_ident());
         }
         self.expect(&TokenKind::RParen);
-        if hash_form { self.expect(&TokenKind::RBracket); }
+        if bracketed { self.expect(&TokenKind::RBracket); }
         derives
     }
 

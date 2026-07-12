@@ -31,8 +31,8 @@ Derived from c++-mode for Allman-style indentation and // comments."
         '("None" "Some" "Ok" "Err" "true" "false")
         'words)
       . font-lock-constant-face)
-     ;; @derive(...)
-     ("@[[:alpha:]][[:alnum:]_]*" . font-lock-preprocessor-face))))
+     ;; #derive(...) / @derive(...)
+     ("[#@][[:alpha:]][[:alnum:]_]*" . font-lock-preprocessor-face))))
 
 (add-to-list 'auto-mode-alist '("\\.cru\\'"   . crust-mode))
 (add-to-list 'auto-mode-alist '("\\.crust\\'" . crust-mode))

@@ -313,7 +313,7 @@ construct, no `case` keyword, `=>` allowed instead of `:`.
 
 ### Structs
 ```c
-@derive(Debug, Clone)
+#derive(Debug, Clone)
 public struct Point
 {
     public float x;
@@ -351,7 +351,7 @@ p.scale(2.0);
 
 ### Enums
 ```c
-@derive(Debug)
+#derive(Debug)
 public enum Shape
 {
     Circle(float),
@@ -569,11 +569,12 @@ When a program uses `async`, crust adds the tokio runtime to the generated
 build automatically — nothing to configure.
 
 ### Deriving traits
-`@derive(...)` is the canonical form; the Rust-style `#[derive(...)]` attribute
-is also accepted.
+`#derive(...)` is the canonical form — it reads like a preprocessor
+directive, but it is a real annotation, not text substitution. `@derive(...)`
+and the Rust-style `#[derive(...)]` attribute are also accepted.
 
 ```c
-@derive(Debug, Clone)
+#derive(Debug, Clone)
 struct Point
 {
     int x;
@@ -698,7 +699,7 @@ int main(void)
 
 **crust**
 ```c
-@derive(Debug)
+#derive(Debug)
 struct Point
 {
     float x;
@@ -1101,7 +1102,7 @@ Copy `editors/crust-mode.el` to `~/.emacs.d/` and add to your `.emacs`:
 ```
 
 Opens `.cru` and `.crust` files in `crust-mode`, derived from `c++-mode` for
-Allman-style indentation. Adds keyword, type, constant, and `@derive` highlighting
+Allman-style indentation. Adds keyword, type, constant, and `#derive`/`@derive` highlighting
 on top of the standard C/C++ faces.
 
 **If you use `lsp-mode` with a `c++-mode` hook** that calls `(lsp)`, guard it so

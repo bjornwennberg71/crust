@@ -152,11 +152,14 @@ fn const_by_default() {
 }
 
 #[test]
-fn derive_both_forms_equivalent() {
-    let at = crust::transpile("@derive(Debug, Clone)\nstruct P\n{\n    int x;\n}\n");
-    let hash = crust::transpile("#[derive(Debug, Clone)]\nstruct P\n{\n    int x;\n}\n");
-    assert_eq!(at, hash);
-    assert!(at.contains("#[derive(Debug, Clone)]"));
+fn derive_all_forms_equivalent() {
+    // #derive is canonical; @derive and Rust's #[derive(...)] are aliases
+    let pound = crust::transpile("#derive(Debug, Clone)\nstruct P\n{\n    int x;\n}\n");
+    let at    = crust::transpile("@derive(Debug, Clone)\nstruct P\n{\n    int x;\n}\n");
+    let rust  = crust::transpile("#[derive(Debug, Clone)]\nstruct P\n{\n    int x;\n}\n");
+    assert_eq!(pound, at);
+    assert_eq!(pound, rust);
+    assert!(pound.contains("#[derive(Debug, Clone)]"));
 }
 
 #[test]

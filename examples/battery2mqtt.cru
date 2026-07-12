@@ -32,14 +32,14 @@ struct Config
     int    interval_ms;
 }
 
-@derive(Clone)
+#derive(Clone)
 struct BatteryModule
 {
     float voltage;
     float soc;
 }
 
-@derive(Clone)
+#derive(Clone)
 struct Battery
 {
     int                id;

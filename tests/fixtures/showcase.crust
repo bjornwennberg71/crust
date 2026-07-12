@@ -9,7 +9,7 @@ const int MAX_SPEED = 300;
 static float PI = 3.14159;
 
 // derive + pub struct with pub fields
-@derive(Debug, Clone)
+#derive(Debug, Clone)
 public struct Vehicle
 {
     public float speed;
@@ -43,7 +43,7 @@ impl Vehicle
 }
 
 // enum with tuple variants
-@derive(Debug)
+#derive(Debug)
 public enum Status
 {
     Ok(int),
