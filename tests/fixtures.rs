@@ -76,6 +76,21 @@ fn async_await() {
 }
 
 #[test]
+fn if_auto_and_if_let_equivalent() {
+    // canonical: if (auto Pattern = expr); Rust's bare `if let` is the alias
+    let auto_form = crust::transpile(
+        "function f(Option<int> maybe)\n{\n    if (auto Some(n) = maybe)\n    {\n        println(\"{}\", n);\n    }\n}\n");
+    let let_form = crust::transpile(
+        "function f(Option<int> maybe)\n{\n    if let Some(n) = maybe\n    {\n        println(\"{}\", n);\n    }\n}\n");
+    assert_eq!(auto_form, let_form);
+    assert!(auto_form.contains("if let Some(n) = maybe"));
+
+    let auto_while = crust::transpile(
+        "function f(&mut Vec<int> stack)\n{\n    while (auto Some(v) = stack.pop())\n    {\n        println(\"{}\", v);\n    }\n}\n");
+    assert!(auto_while.contains("while let Some(v) ="));
+}
+
+#[test]
 fn switch_and_match_equivalent() {
     // switch is the canonical spelling; match is the Rust-flavored alias
     let sw = crust::transpile(concat!(

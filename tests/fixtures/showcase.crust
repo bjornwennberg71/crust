@@ -87,10 +87,10 @@ function demo_closures()
     bool either = flag || flipped;
 }
 
-// if let, while let, else if chain
+// conditional binding (canonical auto form + Rust if-let alias), else if chain
 function demo_control(Option<int> maybe)
 {
-    if(let Some(n) = maybe)
+    if (auto Some(n) = maybe)
     {
         int doubled = n * 2;
     }

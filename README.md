@@ -213,22 +213,25 @@ else
 }
 ```
 
-### if let
+### if with binding
+Test and destructure in one condition — `auto` binds the pattern when it
+matches. (Rust's bare `if let Some(n) = maybe` is accepted as an alias.)
+
 ```c
-if let Some(n) = maybe
+if (auto Some(n) = maybe)
 {
     int doubled = n * 2;
 }
 ```
 
-### while / while let
+### while / while with binding
 ```c
 while (i < 10)
 {
     i = i + 1;
 }
 
-while let Some(val) = stack.pop()
+while (auto Some(val) = stack.pop())    // loop while the pattern matches
 {
     process(val);
 }

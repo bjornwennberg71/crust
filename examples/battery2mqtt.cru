@@ -115,7 +115,7 @@ function load_config(string path): Config
                     continue;
                 }
 
-                if let Some(kv) = trimmed.split_once("=")
+                if (auto Some(kv) = trimmed.split_once("="))
                 {
                     auto key = kv.0.trim();
                     auto val = kv.1.trim();
