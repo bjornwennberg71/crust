@@ -40,7 +40,7 @@ fn emit_extern_block(e: &ExternBlock, out: &mut String) {
             .collect();
         let ret = match &f.ret {
             None => String::new(),
-            Some(t) => format!(" -> {}", emit_type(t)),
+            Some(t) => format!(" -> {}", emit_ret_type(t)),
         };
         out.push_str(&format!("    fn {}({}){};\n", f.name, params.join(", "), ret));
     }
@@ -109,7 +109,7 @@ fn emit_trait(t: &Trait, out: &mut String, ctx: &Ctx) {
             (false, true)  => self_param,
             (false, false) => format!("{}, {}", self_param, params.join(", ")),
         };
-        let ret = m.ret.as_ref().map(|t| format!(" -> {}", emit_type(t))).unwrap_or_default();
+        let ret = m.ret.as_ref().map(|t| format!(" -> {}", emit_ret_type(t))).unwrap_or_default();
         match &m.body {
             None => out.push_str(&format!("    fn {}({}){};\n", m.name, all_params, ret)),
             Some(body) => {
@@ -151,7 +151,7 @@ fn emit_impl(i: &ImplBlock, out: &mut String, ctx: &Ctx) {
         }
         out.push(')');
         if let Some(ret) = &m.ret {
-            out.push_str(&format!(" -> {}", emit_type(ret)));
+            out.push_str(&format!(" -> {}", emit_ret_type(ret)));
         }
         out.push_str("\n    {\n");
         ctx.cur_fn_ret_string.set(matches!(&m.ret, Some(t) if is_string_type(t)));
@@ -163,11 +163,11 @@ fn emit_impl(i: &ImplBlock, out: &mut String, ctx: &Ctx) {
 }
 
 fn emit_function(f: &Function, out: &mut String, ctx: &Ctx) {
+    if f.name == "main" {
+        return emit_main(f, out, ctx);
+    }
     ctx.cur_fn_ret_string.set(matches!(&f.ret, Some(t) if is_string_type(t)));
     let pub_ = if f.pub_ { "pub " } else { "" };
-    if f.is_async && f.name == "main" {
-        out.push_str("#[tokio::main]\n");
-    }
     let async_ = if f.is_async { "async " } else { "" };
     out.push_str(&format!("{}{}fn {}(", pub_, async_, f.name));
     for (i, p) in f.params.iter().enumerate() {
@@ -176,15 +176,61 @@ fn emit_function(f: &Function, out: &mut String, ctx: &Ctx) {
     }
     out.push(')');
     if let Some(ret) = &f.ret {
-        out.push_str(&format!(" -> {}", emit_type(ret)));
+        out.push_str(&format!(" -> {}", emit_ret_type(ret)));
     }
     out.push_str("\n{\n");
-    if f.name == "main" {
-        out.push_str("    let args: Vec<String> = std::env::args().collect();\n");
-    }
     emit_block(&f.body, out, 1, ctx);
     out.push_str("}\n\n");
     ctx.cur_fn_ret_string.set(false);
+}
+
+// main is surface syntax only — Rust's fn main() takes no parameters and
+// returns (). `void main(Vec<string> args)` binds the collected argv to the
+// declared name (bare `void main()` still gets an implicit `args`), and the
+// return value of `int main(...)` becomes the process exit code via a
+// __crust_main wrapper.
+fn emit_main(f: &Function, out: &mut String, ctx: &Ctx) {
+    let arg_name = match f.params.as_slice() {
+        [] => "args",
+        [p] => {
+            let is_vec_string = matches!(&p.ty, Type::Generic(n, a) if n == "Vec"
+                && matches!(a.as_slice(), [Type::Named(t)] if t == "String"));
+            if !is_vec_string {
+                crate::error::raise(p.span, "main's parameter must be 'Vec<string>'".to_string());
+            }
+            p.name.as_str()
+        }
+        [_, extra, ..] => crate::error::raise(extra.span,
+            "main takes at most one parameter: 'Vec<string> args'".to_string()),
+    };
+
+    if let Some(ret) = &f.ret
+        && !matches!(ret, Type::Named(n) if n == "i64")
+    {
+        crate::error::raise(f.span,
+            "main must return 'int' (the process exit code) or 'void'".to_string());
+    }
+
+    ctx.cur_fn_ret_string.set(false);
+    if f.is_async {
+        out.push_str("#[tokio::main]\n");
+    }
+    let async_ = if f.is_async { "async " } else { "" };
+
+    if f.ret.is_none() {
+        out.push_str(&format!("{}fn main()\n{{\n", async_));
+        out.push_str(&format!("    let {}: Vec<String> = std::env::args().collect();\n", arg_name));
+        emit_block(&f.body, out, 1, ctx);
+        out.push_str("}\n\n");
+    } else {
+        let await_ = if f.is_async { ".await" } else { "" };
+        out.push_str(&format!("{}fn main()\n{{\n", async_));
+        out.push_str("    let args: Vec<String> = std::env::args().collect();\n");
+        out.push_str(&format!("    std::process::exit(__crust_main(args){} as i32);\n}}\n\n", await_));
+        out.push_str(&format!("{}fn __crust_main({}: Vec<String>) -> i64\n{{\n", async_, arg_name));
+        emit_block(&f.body, out, 1, ctx);
+        out.push_str("}\n\n");
+    }
 }
 
 // ── block / statements ────────────────────────────────────────────────────────
@@ -649,6 +695,14 @@ fn emit_binop(op: &BinOp) -> &'static str {
         BinOp::And => "&&", BinOp::Or  => "||",
         BinOp::BitAnd => "&",  BinOp::BitOr  => "|",  BinOp::BitXor => "^",
         BinOp::Shl    => "<<", BinOp::Shr    => ">>",
+    }
+}
+
+// return position: impl Trait is returned by value (params borrow — see emit_type)
+fn emit_ret_type(ty: &Type) -> String {
+    match ty {
+        Type::ImplTrait(name) => format!("impl {}", name),
+        _ => emit_type(ty),
     }
 }
 

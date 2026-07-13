@@ -11,7 +11,7 @@ pub enum TokenKind {
     Ident(String),
 
     // Keywords — declarations
-    KwFunction,
+    KwLambda,
     KwLet,
     KwReturn,
     KwConst,
@@ -120,7 +120,8 @@ impl TokenKind {
             Eof          => return "end of file".to_string(),
 
             KwTrue => "true", KwFalse => "false",
-            KwFunction => "function", KwLet => "let", KwReturn => "return",
+            KwLambda => "lambda",
+            KwLet => "let", KwReturn => "return",
             KwConst => "const", KwStatic => "static", KwType => "type",
             KwUse => "use", KwImpl => "impl", KwPub => "public", KwMut => "mut",
             KwSelf => "this", KwUnsafe => "unsafe", KwAs => "as",
@@ -421,7 +422,7 @@ pub fn tokenize(source: &str) -> Vec<Token> {
                 }
                 let word = &source[start..end];
                 let kind = match word {
-                    "function" => TokenKind::KwFunction,
+                    "lambda"   => TokenKind::KwLambda,
                     "let"      => TokenKind::KwLet,
                     "auto"     => TokenKind::KwLet,   // C++ spelling, same meaning
                     "return"   => TokenKind::KwReturn,

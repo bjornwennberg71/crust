@@ -1,4 +1,4 @@
-function main()
+void main()
 {
     Vec<int> nums = vec(1, 2, 3, 4, 5);
 
@@ -20,14 +20,14 @@ function main()
     }
 
     // iterator method chains
-    Vec<int> doubled = nums.iter().map(function(int x) { return x * 2; }).collect();
-    Vec<int> evens   = nums.iter().filter(function(int x) { return x % 2 == 0; }).collect();
+    Vec<int> doubled = nums.iter().map(lambda(int x) { return x * 2; }).collect();
+    Vec<int> evens   = nums.iter().filter(lambda(int x) { return x % 2 == 0; }).collect();
     int sum          = nums.iter().sum();
     int count        = nums.iter().count();
 
     // chained
     Vec<int> big_evens = nums.iter()
-        .filter(function(int x) { return x % 2 == 0; })
-        .map(function(int x)    { return x * 10; })
+        .filter(lambda(int x) { return x % 2 == 0; })
+        .map(lambda(int x)    { return x * 10; })
         .collect();
 }

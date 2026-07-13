@@ -1,4 +1,4 @@
-function demo_strings()
+void demo_strings()
 {
     // declaration
     string name = "Alice";

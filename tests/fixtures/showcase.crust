@@ -20,22 +20,22 @@ public struct Vehicle
 // impl block — new style: this, mutable, static
 impl Vehicle
 {
-    public static function new(float speed, int id): Vehicle
+    public static Vehicle new(float speed, int id)
     {
         return Vehicle { speed: speed, active: true, id: id };
     }
 
-    public function is_fast(): bool
+    public bool is_fast()
     {
         return this.speed > 100.0;
     }
 
-    public function accelerate(float amount) mutable
+    public void accelerate(float amount) mutable
     {
         this.speed += amount;
     }
 
-    public function stop() mutable
+    public void stop() mutable
     {
         this.active = false;
         this.speed = 0.0;
@@ -52,7 +52,7 @@ public enum Status
 }
 
 // generics in type position, Option, Result
-function find_vehicle(Vec<Vehicle> fleet, int id): Option<int>
+Option<int> find_vehicle(Vec<Vehicle> fleet, int id)
 {
     for (int i = 0; i < 10; i = i + 1)
     {
@@ -65,10 +65,10 @@ function find_vehicle(Vec<Vehicle> fleet, int id): Option<int>
 }
 
 // closures, compound assignment, logical ops, unary
-function demo_closures()
+void demo_closures()
 {
-    auto double  = function(int x) { return x * 2; };
-    auto is_even = function(int x) { return x % 2 == 0; };
+    auto double  = lambda(int x) { return x * 2; };
+    auto is_even = lambda(int x) { return x % 2 == 0; };
 
     int val  = double(5);
     bool even = is_even(4);
@@ -88,7 +88,7 @@ function demo_closures()
 }
 
 // conditional binding (canonical auto form + Rust if-let alias), else if chain
-function demo_control(Option<int> maybe)
+void demo_control(Option<int> maybe)
 {
     if (auto Some(n) = maybe)
     {
@@ -110,7 +110,7 @@ function demo_control(Option<int> maybe)
 }
 
 // tuples
-function demo_tuples(): (int, float)
+(int, float) demo_tuples()
 {
     (int, float) pair = (1, 2.0);
     int a   = pair.0;
@@ -119,7 +119,7 @@ function demo_tuples(): (int, float)
 }
 
 // arrays, index access, cast
-function demo_arrays()
+void demo_arrays()
 {
     int arr[4] = [10, 20, 30, 40];
     int first = arr[0];
@@ -127,14 +127,14 @@ function demo_arrays()
 }
 
 // string literals
-function demo_strings()
+void demo_strings()
 {
     auto greeting = "hello, world";
     auto name = "crust";
 }
 
 // match on int, default
-function demo_match(int n): int
+int demo_match(int n)
 {
     match n
     {
@@ -145,7 +145,7 @@ function demo_match(int n): int
 }
 
 // unsafe block
-function demo_unsafe()
+void demo_unsafe()
 {
     int x = 42;
     unsafe
@@ -155,14 +155,14 @@ function demo_unsafe()
 }
 
 // Result
-function parse_and_double(int n): Result<int, bool>
+Result<int, bool> parse_and_double(int n)
 {
     int result = n * 2;
     return Ok(result);
 }
 
-// pub function
-public function main()
+// public function
+public void main()
 {
     mutable Vehicle v = Vehicle::new(50.0, 1);
     v.accelerate(60.0);

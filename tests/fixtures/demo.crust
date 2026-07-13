@@ -1,16 +1,16 @@
-function square(int x): int
+int square(int x)
 {
     return x * x;
 }
 
-function sum_of_squares(int a, int b): int
+int sum_of_squares(int a, int b)
 {
     int p = square(a);
     int q = square(b);
     return p + q;
 }
 
-function main()
+void main()
 {
     int result = sum_of_squares(3, 4);
 }

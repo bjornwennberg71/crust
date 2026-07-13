@@ -1,5 +1,5 @@
 
-function main()
+void main()
 {
     mutable HashMap<string, int> scores = HashMap::new();
 

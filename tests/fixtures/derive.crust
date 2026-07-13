@@ -15,7 +15,7 @@ enum Color
     Blue,
 }
 
-function main()
+void main()
 {
     Point p = Point { x: 1, y: 2 };
     Point q = p.clone();

@@ -1,4 +1,4 @@
-function main()
+void main()
 {
     mutable int target = 10000;
     if (args.len() > 1)

@@ -12,7 +12,7 @@ enum Shape
     Rect(float, float),
 }
 
-function area(Shape s): float
+float area(Shape s)
 {
     switch (s)
     {
@@ -27,7 +27,7 @@ function area(Shape s): float
     }
 }
 
-function main()
+void main()
 {
     Direction d = Direction::North;
     Shape s = Shape::Circle(3.0);

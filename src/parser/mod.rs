@@ -92,18 +92,29 @@ impl Parser {
             TokenKind::KwStruct   => Item::Struct(self.parse_struct(pub_, derives)),
             TokenKind::KwEnum     => Item::Enum(self.parse_enum(pub_, derives)),
             TokenKind::KwImpl     => {
-                if pub_ {
-                    self.error("'public' is not allowed on impl blocks — mark individual methods instead".to_string());
+                // `impl Shape make()` is a function returning impl Trait;
+                // `impl Point {` / `impl Shape for Point {` is an impl block
+                let third = &self.tokens[(self.pos + 2).min(self.tokens.len() - 1)].kind;
+                if matches!(third, TokenKind::Ident(_)) {
+                    Item::Function(self.parse_function(pub_, false))
+                } else {
+                    if pub_ {
+                        self.error("'public' is not allowed on impl blocks — mark individual methods instead".to_string());
+                    }
+                    Item::Impl(self.parse_impl())
                 }
-                Item::Impl(self.parse_impl())
             }
-            TokenKind::KwFunction => Item::Function(self.parse_function(pub_, false)),
             TokenKind::KwAsync    => {
                 self.advance();
                 Item::Function(self.parse_function(pub_, true))
             }
+            // C-style declaration: return type first, then name
+            TokenKind::KwInt | TokenKind::KwFloat | TokenKind::KwBool | TokenKind::KwVoid |
+            TokenKind::KwChar | TokenKind::KwString | TokenKind::Star | TokenKind::Ampersand |
+            TokenKind::LBracket | TokenKind::LParen | TokenKind::Ident(_)
+                => Item::Function(self.parse_function(pub_, false)),
             other => {
-                let msg = format!("expected an item (function, struct, enum, trait, impl, use, const), got {}", other.describe());
+                let msg = format!("expected an item (a function like 'int add(int a, int b)', struct, enum, trait, impl, use, const), got {}", other.describe());
                 self.error(msg)
             }
         }
@@ -187,12 +198,7 @@ impl Parser {
         let mut functions = Vec::new();
         while *self.peek() != TokenKind::RBrace {
             let span = self.span();
-            // return type — void means no return value
-            let ret = if *self.peek() == TokenKind::KwVoid {
-                self.advance(); None
-            } else {
-                Some(self.parse_type())
-            };
+            let ret = self.parse_return_type();
             let name = self.parse_ident();
             self.extern_fns.insert(name.clone());
             self.expect(&TokenKind::LParen);
@@ -289,15 +295,12 @@ impl Parser {
         let span = self.span();
         let _pub   = self.eat(&TokenKind::KwPub);
         let is_static  = self.eat(&TokenKind::KwStatic);
-        self.expect(&TokenKind::KwFunction);
+        let ret = self.parse_return_type();
         let name = self.parse_ident();
         self.expect(&TokenKind::LParen);
         let (old_self_param, params) = self.parse_method_params();
         self.expect(&TokenKind::RParen);
         let is_mutable = self.eat(&TokenKind::KwMut);
-        let ret = if *self.peek() == TokenKind::Colon {
-            self.advance(); Some(self.parse_type())
-        } else { None };
         let self_param = if is_static { None }
             else if let Some(sp) = old_self_param { Some(sp) }
             else if is_mutable { Some(SelfParam::MutRef) }
@@ -314,15 +317,12 @@ impl Parser {
         let span = self.span();
         let pub_       = self.eat(&TokenKind::KwPub);
         let is_static  = self.eat(&TokenKind::KwStatic);
-        self.expect(&TokenKind::KwFunction);
+        let ret = self.parse_return_type();
         let name = self.parse_ident();
         self.expect(&TokenKind::LParen);
         let (old_self_param, params) = self.parse_method_params();
         self.expect(&TokenKind::RParen);
         let is_mutable = self.eat(&TokenKind::KwMut);
-        let ret = if *self.peek() == TokenKind::Colon {
-            self.advance(); Some(self.parse_type())
-        } else { None };
         let body = self.parse_block();
         let self_param = if is_static {
             None
@@ -369,16 +369,18 @@ impl Parser {
 
     fn parse_function(&mut self, pub_: bool, is_async: bool) -> Function {
         let span = self.span();
-        self.expect(&TokenKind::KwFunction);
+        let ret = self.parse_return_type();
         let name = self.parse_ident();
         self.expect(&TokenKind::LParen);
         let params = self.parse_params();
         self.expect(&TokenKind::RParen);
-        let ret = if *self.peek() == TokenKind::Colon {
-            self.advance(); Some(self.parse_type())
-        } else { None };
         let body = self.parse_block();
         Function { span, pub_, is_async, name, params, ret, body }
+    }
+
+    // C-style: return type in front of the name; void means no return value
+    fn parse_return_type(&mut self) -> Option<Type> {
+        if self.eat(&TokenKind::KwVoid) { None } else { Some(self.parse_type()) }
     }
 
     fn parse_params(&mut self) -> Vec<Param> {
@@ -964,8 +966,8 @@ impl Parser {
             TokenKind::KwFalse      => { self.advance(); Expr::BoolLit(false, span) }
             TokenKind::KwSelf       => { self.advance(); Expr::SelfExpr(span) }
 
-            TokenKind::KwFunction => {
-                // closure: function(params) { block }
+            TokenKind::KwLambda => {
+                // closure: lambda(params) { block } — captures are moved automatically
                 self.advance();
                 self.expect(&TokenKind::LParen);
                 let mut params = Vec::new();

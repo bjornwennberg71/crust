@@ -1,4 +1,4 @@
-function describe(int n): int
+int describe(int n)
 {
     switch (n)
     {
@@ -18,7 +18,7 @@ function describe(int n): int
 }
 
 // switch cases are full patterns: destructuring, alternatives, negatives
-function grade(int n): int
+int grade(int n)
 {
     switch (n)
     {
@@ -37,7 +37,7 @@ function grade(int n): int
     }
 }
 
-function area(Shape s): float
+float area(Shape s)
 {
     switch (s)
     {
@@ -63,7 +63,7 @@ enum Shape
     Dot,
 }
 
-function unwrap_or_zero(Option<int> maybe): int
+int unwrap_or_zero(Option<int> maybe)
 {
     switch (maybe)
     {
@@ -78,7 +78,7 @@ function unwrap_or_zero(Option<int> maybe): int
     }
 }
 
-function main()
+void main()
 {
     int a = describe(1);
     int b = describe(2);

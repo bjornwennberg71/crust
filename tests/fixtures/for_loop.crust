@@ -1,4 +1,4 @@
-function sum(int n): int
+int sum(int n)
 {
     mutable int total = 0;
     for (int i = 0; i < n; i = i + 1)
@@ -8,7 +8,7 @@ function sum(int n): int
     return total;
 }
 
-function main()
+void main()
 {
     int s = sum(5);
 }

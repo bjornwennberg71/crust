@@ -1,4 +1,4 @@
-function abs(int x): int
+int abs(int x)
 {
     if (x < 0)
     {
@@ -10,7 +10,7 @@ function abs(int x): int
     }
 }
 
-function count_down(int n): int
+int count_down(int n)
 {
     mutable int i = n;
     while (i > 0)
@@ -20,7 +20,7 @@ function count_down(int n): int
     return i;
 }
 
-function main()
+void main()
 {
     int a = abs(0 - 5);
     int b = count_down(3);

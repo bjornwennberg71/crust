@@ -1,9 +1,9 @@
 // trait declaration — abstract method + default method
 trait Greet
 {
-    function hello(): string;                  // must implement
+    string hello();                  // must implement hello()
 
-    function goodbye(): string                 // default impl
+    string goodbye()                 // default impl goodbye()
     {
         return "goodbye";
     }
@@ -11,7 +11,7 @@ trait Greet
 
 trait Area
 {
-    function area(): float;
+    float area();
 }
 
 // structs
@@ -28,7 +28,7 @@ public struct Circle
 // impl Greet for Person
 impl Greet for Person
 {
-    public function hello(): string
+    public string hello()
     {
         return format("Hello, {}!", this.name);
     }
@@ -37,25 +37,25 @@ impl Greet for Person
 // impl Area for Circle
 impl Area for Circle
 {
-    public function area(): float
+    public float area()
     {
         return 3.14159 * this.radius * this.radius;
     }
 }
 
 // trait as parameter type
-function print_greeting(impl Greet item)
+void print_greeting(impl Greet item)
 {
     string msg = item.hello();
     println("{}", msg);
 }
 
-function print_area(impl Area shape)
+void print_area(impl Area shape)
 {
     println("area = {}", shape.area());
 }
 
-function main()
+void main()
 {
     Person p = Person { name: "Alice" };
     Circle c = Circle { radius: 5.0 };

@@ -1,17 +1,17 @@
 // threads: spawn(fn_or_closure) returns a thread handle; join() waits on it
 
-function worker()
+void worker()
 {
     println("hello from a named function thread");
 }
 
-function main()
+void main()
 {
     // spawn a plain function
     thread t1 = spawn(worker);
 
     // spawn a closure
-    thread t2 = spawn(function() {
+    thread t2 = spawn(lambda() {
         for (int i = 0; i < 3; i++)
         {
             println("closure thread: {}", i);
@@ -23,7 +23,7 @@ function main()
     // `greeting` belongs to the thread after this line; share via arc<T> if
     // both sides need it.
     string greeting = "captured";
-    thread t3 = spawn(function() {
+    thread t3 = spawn(lambda() {
         println("thread owns: {}", greeting);
     });
 

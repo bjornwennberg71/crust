@@ -6,7 +6,7 @@ extern "C"
     *void malloc(int size);
 }
 
-function main()
+void main()
 {
     printf("hello from crust\n");
     int n = strlen("hello");

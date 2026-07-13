@@ -30,12 +30,12 @@ exactly what the transpiler produced.
 
 **hello.cru**
 ```c
-function greet(string name): string
+string greet(string name)
 {
     return "Hello, " + name + "!";
 }
 
-function main()
+void main()
 {
     string msg = greet("world");
     println("{}", msg);
@@ -67,8 +67,9 @@ fn main()
 }
 ```
 
-(`args` is injected into every `main` — it's how crust programs read their
-command line, see below.)
+(`args` is how crust programs read their command line — declare it as
+`void main(Vec<string> args)`, or leave `main` bare and it's still there
+implicitly. See below.)
 
 ## Installation
 
@@ -138,14 +139,14 @@ between builds.
 
 ### Functions
 ```c
-function add(int a, int b): int
+int add(int a, int b)
 {
     return a + b;
 }
 
-public function greet()        // public = visible outside this module
+public void greet()            // public = visible outside this module
 {
-    // no return type = void
+    // void = returns nothing
 }
 ```
 
@@ -153,7 +154,7 @@ public function greet()        // public = visible outside this module
 Pass by reference with `&` (read-only) or `&mut` (mutable). Works for any type.
 
 ```c
-function sum(&Vec<int> v): int   // read-only reference — v is not moved
+int sum(&Vec<int> v)                    // read-only reference — v is not moved
 {
     int total = 0;
     for (x : v)
@@ -163,7 +164,7 @@ function sum(&Vec<int> v): int   // read-only reference — v is not moved
     return total;
 }
 
-function fill(&mut Vec<int> v, int n)   // mutable reference — can modify v
+void fill(&mut Vec<int> v, int n)       // mutable reference — can modify v
 {
     for (i : 0..n)
     {
@@ -327,17 +328,17 @@ Point p = Point { x: 1.0, y: 2.0 };
 ```c
 impl Point
 {
-    public static function new(float x, float y): Point   // static — no this
+    public static Point new(float x, float y)              // static — no this
     {
         return Point { x: x, y: y };
     }
 
-    public function length(): float                        // read-only by default
+    public float length()                                   // read-only by default
     {
         return this.x * this.x + this.y * this.y;
     }
 
-    public function scale(float factor) mutable            // mutable — can modify this
+    public void scale(float factor) mutable                // mutable — can modify this
     {
         this.x *= factor;
         this.y *= factor;
@@ -373,9 +374,9 @@ switch (s)
 ```c
 trait Greet
 {
-    function hello(): string;           // abstract — must implement
+    string hello();                     // abstract — must implement
 
-    function goodbye(): string          // default implementation
+    string goodbye()                    // default implementation
     {
         return "goodbye";
     }
@@ -383,14 +384,14 @@ trait Greet
 
 impl Greet for Person
 {
-    public function hello(): string
+    public string hello()
     {
         return format("Hello, {}!", this.name);
     }
 }
 
 // accept any type that implements Greet
-function print_greeting(impl Greet item)
+void print_greeting(impl Greet item)
 {
     println("{}", item.hello());
 }
@@ -398,7 +399,7 @@ function print_greeting(impl Greet item)
 
 ### Generics in type position
 ```c
-function find(Vec<int> items, int target): Option<int>
+Option<int> find(Vec<int> items, int target)
 {
     return None;
 }
@@ -445,8 +446,8 @@ auto slice = v[1..3];        // slice range
 ```c
 Vec<int> nums = vec(1, 2, 3, 4, 5);
 
-Vec<int> doubled = nums.iter().map(function(int x) { return x * 2; }).collect();
-Vec<int> evens   = nums.iter().filter(function(int x) { return x % 2 == 0; }).collect();
+Vec<int> doubled = nums.iter().map(lambda(int x) { return x * 2; }).collect();
+Vec<int> evens   = nums.iter().filter(lambda(int x) { return x % 2 == 0; }).collect();
 int sum          = nums.iter().sum();
 int count        = nums.iter().count();
 ```
@@ -501,8 +502,8 @@ string msg = format("hi, {}!", name);
 
 ### Closures
 ```c
-auto double  = function(int x) { return x * 2; };
-auto is_even = function(int x) { return x % 2 == 0; };
+auto double  = lambda(int x) { return x * 2; };
+auto is_even = lambda(int x) { return x % 2 == 0; };
 int result   = double(5);
 ```
 
@@ -511,17 +512,18 @@ int result   = double(5);
 `thread` handle; `join()` waits for it. `sleep_ms(n)` pauses the current thread.
 
 ```c
-function worker()
+void worker()
 {
     println("working");
 }
 
-function main()
+void main()
 {
     thread t1 = spawn(worker);              // spawn a named function
 
     string msg = "captured";
-    thread t2 = spawn(function() {          // spawn a closure
+    thread t2 = spawn(lambda()            // spawn a closure
+    {
         println("thread owns: {}", msg);
     });
 
@@ -550,15 +552,15 @@ arc<string> s2 = s.clone();    // clone a handle, move it into a thread
 ```
 
 ### async / await
-C#-style: `async function` declares, prefix `await` consumes.
+C#-style: `async` on the declaration, prefix `await` consumes.
 
 ```c
-async function fetch(): string
+async string fetch()
 {
     return "data";
 }
 
-async function main()
+async void main()
 {
     string data = await fetch();
     println("{}", data);
@@ -630,7 +632,7 @@ extern "C"
     int  strlen(*char s);
 }
 
-function main()
+void main()
 {
     printf("hello\n");      // wrapped in unsafe {} automatically
     int n = strlen("hi");
@@ -645,22 +647,33 @@ unsafe
 }
 ```
 
-### command-line arguments
+### main, command-line arguments, exit codes
 
-`args` is automatically available in `main()` as a `Vec<string>` — no import needed.
-Same convention as C's `argv`: index 0 is the program name, user arguments
-start at index 1 (`args.len()` plays the role of `argc`).
+Declare the arguments as a parameter of `main` — same convention as C's
+`argv`: index 0 is the program name, user arguments start at index 1
+(`args.len()` plays the role of `argc`). Any parameter name works.
+
+`main` can also be `int`: the return value becomes the process exit code,
+exactly like C. A `void main` exits with 0.
 
 ```c
-function main()
+int main(Vec<string> args)
 {
-    int n = 10000;          // default
+    mutable int n = 10000;      // default
     if (args.len() > 1)
     {
         n = args[1].parse();
     }
+    if (n < 0)
+    {
+        return 1;               // process exit code
+    }
+    return 0;
 }
 ```
+
+For convenience, a bare `void main()` still has `args` available implicitly —
+handy for throwaway scripts, but the explicit parameter is the canonical form.
 
 ## Examples
 
@@ -676,7 +689,8 @@ you can see exactly what changes and what stays familiar.
 #include <math.h>
 #include <stdio.h>
 
-typedef struct {
+typedef struct
+{
     float x;
     float y;
 } Point;
@@ -708,7 +722,7 @@ struct Point
 
 impl Point
 {
-    function distance(&Point other): float
+    float distance(&Point other)
     {
         float dx = this.x - other.x;
         float dy = this.y - other.y;
@@ -716,7 +730,7 @@ impl Point
     }
 }
 
-function main()
+void main()
 {
     Point a = Point { x: 1.0, y: 2.0 };
     Point b = Point { x: 4.0, y: 6.0 };
@@ -773,12 +787,12 @@ int main(void)
 ```c
 use std::fs;
 
-function read_file(string path): Result<string, string>
+Result<string, string> read_file(string path)
 {
-    return fs::read_to_string(path).map_err(function(e) { return e.to_string(); });
+    return fs::read_to_string(path).map_err(lambda(e) { return e.to_string(); });
 }
 
-function main()
+void main()
 {
     switch (read_file("notes.txt"))
     {
@@ -818,7 +832,7 @@ int main(void)
 
 **crust**
 ```c
-function main()
+void main()
 {
     string line         = "alice:30:engineer";
     Vec<string> parts   = line.split(":").collect();
@@ -866,7 +880,7 @@ int main(void)
 
 **crust**
 ```c
-function main()
+void main()
 {
     mutable Vec<int> nums = vec();
     for (int i = 0; i < 20; i++)
@@ -915,7 +929,7 @@ enum Command
     Fire,
 }
 
-function handle(Command cmd)
+void handle(Command cmd)
 {
     switch (cmd)
     {
@@ -981,19 +995,19 @@ int main(int argc, char *argv[])
 ```c
 use std::fs;
 
-function main()
+int main(Vec<string> args)
 {
     if (args.len() < 2)
     {
         println("usage: wc <file>");
-        return;
+        return 1;
     }
 
     string path = args[1].clone();
 
     switch (fs::read_to_string(&path))
     {
-        case Err(e): { println("error: {}", e); return; }
+        case Err(e): { println("error: {}", e); return 1; }
         case Ok(content):
         {
             int lines = content.lines().count();
@@ -1002,12 +1016,14 @@ function main()
             println("{} {} {} {}", lines, words, bytes, path);
         }
     }
+    return 0;
 }
 ```
 
-`args` is `argv` as a `Vec<string>` built into `main()` — same indexing as C,
-with `args.len()` instead of a separate `argc`. The file is read in one call;
-counting is iterator chains over the result.
+`main`'s signature mirrors C: `args` is `argv` as a `Vec<string>` with
+`args.len()` instead of a separate `argc`, and the returned `int` is the
+process exit code. The file is read in one call; counting is iterator chains
+over the result.
 
 ---
 
@@ -1198,10 +1214,11 @@ the transpiler produces, not because you ever need to write it.
 ### Threads
 
 ```c
-function main()
+void main()
 {
     string msg = "captured";
-    thread t = spawn(function() {
+    thread t = spawn(lambda()
+    {
         println("{}", msg);
     });
     t.join();
@@ -1223,7 +1240,7 @@ captures belong to the thread afterwards.
 ### Pointers
 
 ```c
-function main()
+void main()
 {
     box<int>    b  = box(5);
     rc<int>     r  = rc(42);
@@ -1245,10 +1262,10 @@ fn main()
 ### Iterators
 
 ```c
-function main()
+void main()
 {
     Vec<int> nums    = vec(1, 2, 3, 4, 5);
-    Vec<int> doubled = nums.iter().map(function(int x) { return x * 2; }).collect();
+    Vec<int> doubled = nums.iter().map(lambda(int x) { return x * 2; }).collect();
     int sum          = nums.iter().sum();
 }
 ```
@@ -1269,12 +1286,12 @@ the semantic pass will elide it where the collection isn't used again.
 ### async / await
 
 ```c
-async function fetch(): string
+async string fetch()
 {
     return "data";
 }
 
-async function main()
+async void main()
 {
     string data = await fetch();
     println("{}", data);

@@ -15,12 +15,12 @@ const int RIGHT      = 1;
 const int DOWN       = 2;
 const int LEFT       = 3;
 
-function lcg(int seed): int
+int lcg(int seed)
 {
     return (seed * 48271) % 2147483647;
 }
 
-function abs_val(int x): int
+int abs_val(int x)
 {
     if (x < 0)
     {
@@ -29,17 +29,17 @@ function abs_val(int x): int
     return x;
 }
 
-function cls()
+void cls()
 {
     print("\x1b[2J\x1b[H");
 }
 
-function at(int row, int col)
+void at(int row, int col)
 {
     print("\x1b[{};{}H", row, col);
 }
 
-function main()
+void main()
 {
     system("stty raw -echo");
     fcntl(0, F_SETFL, O_NONBLOCK);

@@ -1,6 +1,6 @@
 // heap and shared pointers: box<T>, rc<T>, arc<T>
 
-function main()
+void main()
 {
     // heap allocation
     box<int> b = box(5);
@@ -15,7 +15,7 @@ function main()
     arc<string> s = arc("shared");
     arc<string> s2 = s.clone();
 
-    thread t = spawn(function() {
+    thread t = spawn(lambda() {
         println("thread sees nothing here, plain closure");
     });
     t.join();
