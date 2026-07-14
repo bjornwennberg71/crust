@@ -178,10 +178,10 @@ fn hello_world_readme_example() {
 
 #[test]
 fn main_signature_forms() {
-    // bare main still gets implicit args
-    let bare = crust::transpile("void main()\n{\n    println(\"{}\", args.len());\n}\n");
-    assert!(bare.contains("let args: Vec<String> = std::env::args().collect();"),
-        "implicit args missing:\n{bare}");
+    // bare main gets no argv binding (and thus no unused-variable warning)
+    let bare = crust::transpile("void main()\n{\n    println(\"hi\");\n}\n");
+    assert!(!bare.contains("std::env::args()"),
+        "bare main must not collect argv:\n{bare}");
 
     // explicit parameter picks the binding name; Rust main stays parameterless
     let named = crust::transpile("void main(Vec<string> argv)\n{\n    println(\"{}\", argv.len());\n}\n");

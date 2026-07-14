@@ -186,19 +186,18 @@ fn emit_function(f: &Function, out: &mut String, ctx: &Ctx) {
 
 // main is surface syntax only — Rust's fn main() takes no parameters and
 // returns (). `void main(Vec<string> args)` binds the collected argv to the
-// declared name (bare `void main()` still gets an implicit `args`), and the
-// return value of `int main(...)` becomes the process exit code via a
-// __crust_main wrapper.
+// declared name (a bare `main` gets no argv at all), and the return value of
+// `int main(...)` becomes the process exit code via a __crust_main wrapper.
 fn emit_main(f: &Function, out: &mut String, ctx: &Ctx) {
     let arg_name = match f.params.as_slice() {
-        [] => "args",
+        [] => None,
         [p] => {
             let is_vec_string = matches!(&p.ty, Type::Generic(n, a) if n == "Vec"
                 && matches!(a.as_slice(), [Type::Named(t)] if t == "String"));
             if !is_vec_string {
                 crate::error::raise(p.span, "main's parameter must be 'Vec<string>'".to_string());
             }
-            p.name.as_str()
+            Some(p.name.as_str())
         }
         [_, extra, ..] => crate::error::raise(extra.span,
             "main takes at most one parameter: 'Vec<string> args'".to_string()),
@@ -219,15 +218,25 @@ fn emit_main(f: &Function, out: &mut String, ctx: &Ctx) {
 
     if f.ret.is_none() {
         out.push_str(&format!("{}fn main()\n{{\n", async_));
-        out.push_str(&format!("    let {}: Vec<String> = std::env::args().collect();\n", arg_name));
+        if let Some(name) = arg_name {
+            out.push_str(&format!("    let {}: Vec<String> = std::env::args().collect();\n", name));
+        }
         emit_block(&f.body, out, 1, ctx);
         out.push_str("}\n\n");
     } else {
         let await_ = if f.is_async { ".await" } else { "" };
         out.push_str(&format!("{}fn main()\n{{\n", async_));
-        out.push_str("    let args: Vec<String> = std::env::args().collect();\n");
-        out.push_str(&format!("    std::process::exit(__crust_main(args){} as i32);\n}}\n\n", await_));
-        out.push_str(&format!("{}fn __crust_main({}: Vec<String>) -> i64\n{{\n", async_, arg_name));
+        match arg_name {
+            Some(name) => {
+                out.push_str("    let args: Vec<String> = std::env::args().collect();\n");
+                out.push_str(&format!("    std::process::exit(__crust_main(args){} as i32);\n}}\n\n", await_));
+                out.push_str(&format!("{}fn __crust_main({}: Vec<String>) -> i64\n{{\n", async_, name));
+            }
+            None => {
+                out.push_str(&format!("    std::process::exit(__crust_main(){} as i32);\n}}\n\n", await_));
+                out.push_str(&format!("{}fn __crust_main() -> i64\n{{\n", async_));
+            }
+        }
         emit_block(&f.body, out, 1, ctx);
         out.push_str("}\n\n");
     }

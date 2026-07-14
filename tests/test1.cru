@@ -1,4 +1,4 @@
-void main()
+void main(Vec<string> args)
 {
     mutable int target = 10000;
     if (args.len() > 1)

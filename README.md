@@ -61,15 +61,12 @@ fn greet(name: String) -> String
 
 fn main()
 {
-    let args: Vec<String> = std::env::args().collect();
     let msg: String = greet(String::from("world"));
     println!("{}", msg);
 }
 ```
 
-(`args` is how crust programs read their command line — declare it as
-`void main(Vec<string> args)`, or leave `main` bare and it's still there
-implicitly. See below.)
+(To read the command line, declare it: `void main(Vec<string> args)` — see below.)
 
 ## Installation
 
@@ -672,8 +669,8 @@ int main(Vec<string> args)
 }
 ```
 
-For convenience, a bare `void main()` still has `args` available implicitly —
-handy for throwaway scripts, but the explicit parameter is the canonical form.
+A `main` without the parameter simply doesn't collect the command line —
+there is no implicit `args` variable.
 
 ## Examples
 
@@ -1227,7 +1224,6 @@ void main()
 ```rust
 fn main()
 {
-    let args: Vec<String> = std::env::args().collect();
     let msg: String = String::from("captured");
     let t: std::thread::JoinHandle<()> = std::thread::spawn(move || { println!("{}", msg); });
     t.join().unwrap();
@@ -1251,7 +1247,6 @@ void main()
 ```rust
 fn main()
 {
-    let args: Vec<String> = std::env::args().collect();
     let b: Box<i64> = Box::new(5);
     let r: std::rc::Rc<i64> = std::rc::Rc::new(42);
     let s: std::sync::Arc<String> = std::sync::Arc::new(String::from("shared"));
@@ -1272,7 +1267,6 @@ void main()
 ```rust
 fn main()
 {
-    let args: Vec<String> = std::env::args().collect();
     let nums: Vec<i64> = vec!(1, 2, 3, 4, 5);
     let doubled: Vec<i64> = nums.clone().into_iter().map(|x| { return (x * 2); }).collect();
     let sum: i64 = nums.clone().into_iter().sum();
@@ -1306,7 +1300,6 @@ async fn fetch() -> String
 #[tokio::main]
 async fn main()
 {
-    let args: Vec<String> = std::env::args().collect();
     let data: String = (fetch()).await;
     println!("{}", data);
 }
