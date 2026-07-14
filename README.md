@@ -1,3 +1,7 @@
+<p align="center">
+    <img src="images/crust_text.png" alt="crust — C-like syntax. Rust-powered." width="700">
+</p>
+
 # crust
 
 > An experiment: a more C-like syntax on top of Rust, compiled to native binaries.
